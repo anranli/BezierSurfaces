@@ -21,6 +21,8 @@
 #include <time.h>
 #include <math.h>
 
+#include "BezierSurfaces.h"
+
 
 #define PI 3.14159265  // Should be used from mathlib
 inline float sqr(float x) { return x*x; }
@@ -57,12 +59,57 @@ public:
 //****************************************************
 // Global Variables
 //****************************************************
+const int MAX_CHARS_PER_LINE = 512;
+const int MAX_TOKENS_PER_LINE = 20;
+const char* const DELIMITER = " ";
+
 Viewport	viewport;
 float rA, gA, bA;
 float rD, gD, bD;
 float rS, gS, bS, v;
 std::vector<Light> lights;
 
+string filename;
+float subdivisionSize;
+boolean isAdaptive;
+
+int numberOfPatches;
+vector<Surface> surface_list;
+
+
+Point::Point() {
+    x = 0.0f;
+    y = 0.0f;
+    z = 0.0f;
+}
+
+Point::Point(float a, float b, float c) {
+    x = a;
+    y = b;
+    z = c;
+}
+
+Curve::Curve() {
+
+}
+
+Curve::Curve(Point a1, Point b1, Point c1, Point d1) {
+    a = a1;
+    b = b1;
+    c = c1;
+    d = d1;
+}
+
+Surface::Surface() {
+
+}
+
+Surface::Surface(Curve a1, Curve b1, Curve c1, Curve d1) {
+    a = a1;
+    b = b1;
+    c = c1;
+    d = d1;
+}
 
 //****************************************************
 // Simple init function
@@ -115,7 +162,7 @@ std::vector<float> getAmbient(Light l){
 std::vector<float> getDiffuse(Light l, std::vector<float> point, float radius){
     std::vector<float> dir;
     if (l.type == 'p') {
-        float scale = sqrt(pow((point[0] - l.x), 2) + pow((point[1] - l.y), 2) + pow((point[2] - l.z),2));
+        float scale = sqrt(pow((point[0] - l.x), 2) + pow((point[1] - l.y), 2) + pow((point[2] - l.z), 2));
         dir = { (point[0] - l.x) / scale, (point[1] - l.y) / scale, (point[2] - l.z) / scale };
     }
     else /*if (l.type == 'd')*/ {
@@ -147,8 +194,8 @@ std::vector<float> getSpecular(Light l, std::vector<float> point, float radius){
     //Rr = Ri - 2 N (Ri . N)
     float dirDotN = dir[0] * normal[0] + dir[1] * normal[1] + dir[2] * normal[2];
     std::vector<float> ref = { dir[0] - (2 * normal[0] * dirDotN), dir[1] - (2 * normal[1] * dirDotN), dir[2] - (2 * normal[2] * dirDotN) };
-    std::vector<float> view = { 0.0f, 0.0f, 1.0f};
-    
+    std::vector<float> view = { 0.0f, 0.0f, 1.0f };
+
     float term = pow(max(ref[0] * view[0] + ref[1] * view[1] + ref[2] * view[2], 0.0f), v);
 
     std::vector<float> spec = { rS*l.r*term, gS*l.g*term, bS*l.b*term };
@@ -172,11 +219,11 @@ void circle(float centerX, float centerY, float radius) {
     int minJ = max(0, (int)floor(centerY - radius));
     int maxJ = min(viewport.h - 1, (int)ceil(centerY + radius));
 
-    
+
 
     for (i = 0; i < viewport.w; i++) {
         for (j = 0; j < viewport.h; j++) {
-            
+
 
             // Location of the center of pixel relative to center of sphere
             float x = (i + 0.5 - centerX);
@@ -246,70 +293,94 @@ void myDisplay() {
 
 
     // Start drawing
-    circle(viewport.w / 2.0 , viewport.h / 2.0 , min(viewport.w, viewport.h) * 0.45);
-    
+    circle(viewport.w / 2.0, viewport.h / 2.0, min(viewport.w, viewport.h) * 0.45);
+
 
     glFlush();
     glutSwapBuffers();					// swap buffers (we earlier set double buffer)
 }
 
 void processArgs(int argc, char *argv[]) {
-    for (int i = 1; i < argc; i++) {
-        char* temp = argv[i];
-        std::string str(argv[i]);
+    filename = string(argv[1]);
+    char* temp = argv[1];
+    subdivisionSize = strtof(argv[2], &temp);
+}
 
-        if (str.compare("-ka") == 0) {
-            rA = strtof(argv[i + 1], &temp);
-            gA = strtof(argv[i + 2], &temp);
-            bA = strtof(argv[i + 3], &temp);
-            i = i + 3;
+void processFile(char* filename) {
+    // create a file-reading object
+    ifstream fin;
+    fin.open(filename); // open a file
+    if (!fin.good()) {
+        return; // exit if file not found
+    }
+
+    // read each line of the file
+    while (!fin.eof())
+    {
+        // read an entire line into memory
+        char buf[MAX_CHARS_PER_LINE];
+        fin.getline(buf, MAX_CHARS_PER_LINE);
+
+        // parse the line into blank-delimited tokens
+        int n = 0; // a for-loop index
+
+        // array to store memory addresses of the tokens in buf
+        const char* token[MAX_TOKENS_PER_LINE] = {}; // initialize to 0
+
+        // parse the line
+        token[0] = strtok(buf, DELIMITER); // first token
+        if (token[0]) // zero if line is blank
+        {
+            for (n = 1; n < MAX_TOKENS_PER_LINE; n++)
+            {
+                token[n] = strtok(0, DELIMITER); // subsequent tokens
+                if (!token[n]) break; // no more tokens
+            }
         }
-        else if (str.compare("-kd") == 0) {
-            rD = strtof(argv[i + 1], &temp);
-            gD = strtof(argv[i + 2], &temp);
-            bD = strtof(argv[i + 3], &temp);
-            i = i + 3;
+
+        char* temp = "";
+        std::string str(token[0]);
+
+        vector<Curve> curve_list;
+
+        // process the tokens
+        if (!token[1]) { //pls
+            numberOfPatches = atoi(token[0]);
         }
-        else if (str.compare("-ks") == 0) {
-            rS = strtof(argv[i + 1], &temp);
-            gS = strtof(argv[i + 2], &temp);
-            bS = strtof(argv[i + 3], &temp);
-            i = i + 3;
-        }
-        else if (str.compare("-sp") == 0) {
-            v = strtof(argv[i + 1], &temp);
-            i = i + 1;
-        }
-        else if (str.compare("-pl") == 0) {
-            Light l;
-            l.x = strtof(argv[i + 1], &temp);
-            l.y = strtof(argv[i + 2], &temp);
-            l.z = strtof(argv[i + 3], &temp);
-            l.r = strtof(argv[i + 4], &temp);
-            l.b = strtof(argv[i + 5], &temp);
-            l.g = strtof(argv[i + 6], &temp);
-            l.type = 'p';
-            lights.push_back(l);
-            i = i + 6;
-        }
-        else if (str.compare("-dl") == 0) {
-            Light l;
-            l.x = strtof(argv[i + 1], &temp);
-            l.y = strtof(argv[i + 2], &temp);
-            l.z = strtof(argv[i + 3], &temp);
-            l.r = strtof(argv[i + 4], &temp);
-            l.b = strtof(argv[i + 5], &temp);
-            l.g = strtof(argv[i + 6], &temp);
-            l.type = 'd';
-            lights.push_back(l);
-            i = i + 6;
+        else {
+            Point a;
+            a.x = strtof(token[0], &temp);
+            a.y = strtof(token[1], &temp);
+            a.z = strtof(token[2], &temp);
+            Point b;
+            b.x = strtof(token[3], &temp);
+            b.y = strtof(token[4], &temp);
+            b.z = strtof(token[5], &temp);
+            Point c;
+            c.x = strtof(token[6], &temp);
+            c.y = strtof(token[7], &temp);
+            c.z = strtof(token[8], &temp);
+            Point d;
+            d.x = strtof(token[9], &temp);
+            d.y = strtof(token[10], &temp);
+            d.z = strtof(token[11], &temp);
+
+            Curve curve(a, b, c, d);
+            curve_list.push_back(curve);
+
+            if (curve_list.size() == 4) {
+                Surface s(curve_list[0], curve_list[1], curve_list[2], curve_list[3]);
+                curve_list.clear(); //TODO hopefully this works
+                surface_list.push_back(s);
+            }
         }
     }
 }
 
 void keyboard(unsigned char key, int xmouse, int ymouse)
 {
-    if (key == ' '){
+    switch (key) {
+    case ' ':
         exit(0);
     }
 }
