@@ -22,13 +22,6 @@
 #include <math.h>
 
 #include "BezierSurfaces.h"
-
-
-#define PI 3.14159265  // Should be used from mathlib
-inline float sqr(float x) { return x*x; }
-
-#define SPACEBAR 32
-
 using namespace std;
 
 //****************************************************
@@ -72,6 +65,8 @@ std::vector<Light> lights;
 string filename;
 float subdivisionSize;
 boolean isAdaptive;
+bool flatShading;
+bool filledPolys;
 
 int numberOfPatches;
 vector<Surface> surface_list;
@@ -131,9 +126,7 @@ void Point::scalarMult(float s) {
 }
 
 Point Point::add(Point p) {
-    x += p.x;
-    y += p.y;
-    z += p.z;
+	return Point(x + p.x, y + p.y, z + p.z);
 }
 
 Curve::Curve() {
@@ -163,7 +156,6 @@ Surface::Surface(Curve a1, Curve b1, Curve c1, Curve d1) {
 //****************************************************
 void initScene(){
 
-    // Nothing to do here for this simple example.
 
 }
 
@@ -198,89 +190,6 @@ void setPixel(int x, int y, GLfloat r, GLfloat g, GLfloat b) {
 }
 
 //****************************************************
-// Draw a filled circle.  
-//****************************************************
-
-/*void circle(float centerX, float centerY, float radius) {
-    // Draw inner circle
-    glBegin(GL_POINTS);
-
-    // We could eliminate wasted work by only looping over the pixels
-    // inside the sphere's radius.  But the example is more clear this
-    // way.  In general drawing an object by loopig over the whole
-    // screen is wasteful.
-
-    int i, j;  // Pixel indices
-
-    int minI = max(0, (int)floor(centerX - radius));
-    int maxI = min(viewport.w - 1, (int)ceil(centerX + radius));
-
-    int minJ = max(0, (int)floor(centerY - radius));
-    int maxJ = min(viewport.h - 1, (int)ceil(centerY + radius));
-
-
-
-    for (i = 0; i < viewport.w; i++) {
-        for (j = 0; j < viewport.h; j++) {
-
-
-            // Location of the center of pixel relative to center of sphere
-            float x = (i + 0.5 - centerX);
-            float y = (j + 0.5 - centerY);
-
-            float dist = sqrt(sqr(x) + sqr(y));
-
-            if (dist <= radius) {
-
-                // This is the front-facing Z coordinate
-                float z = sqrt(radius*radius - dist*dist);
-                float r = 0.0f;
-                float b = 0.0f;
-                float g = 0.0f;
-
-                for (Light p : lights) {
-                    if (i == 150 && j == 150) {
-                        int c = 2;
-                    }//TODO
-
-                    std::vector<float> amb = getAmbient(p);
-                    r += amb[0];
-                    g += amb[1];
-                    b += amb[2];
-
-                    std::vector<float> point = { x / radius, y / radius, z / radius };
-                    std::vector<float> diff = getDiffuse(p, point, radius);
-                    r += diff[0];
-                    g += diff[1];
-                    b += diff[2];
-
-                    std::vector<float> spec = getSpecular(p, point, radius);
-                    r += spec[0];
-                    g += spec[1];
-                    b += spec[2];
-
-                    if (i == 150 && j == 150) {
-                        int c = 2;
-                    }//TODO
-                }
-                if (i == 150 && j == 150) {
-                    int c = 2;
-                }//TODO
-
-                setPixel(i, j, r, g, b);
-
-                // This is amusing, but it assumes negative color values are treated reasonably.
-                // setPixel(i,j, x/radius, y/radius, z/radius );
-            }
-
-
-        }
-    }
-
-
-    glEnd();
-}*/
-//****************************************************
 // function that does the actual drawing of stuff
 //***************************************************
 void myDisplay() {
@@ -288,12 +197,34 @@ void myDisplay() {
     glClear(GL_COLOR_BUFFER_BIT);				// clear the color buffer
 
     glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
+	
+	if (filledPolys) {
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+	else {
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	}
+	
+	if (flatShading) {
+		glShadeModel(GL_FLAT);
+	}
+	else {
+		glShadeModel(GL_SMOOTH);
+	}
+	
     glLoadIdentity();				        // make sure transformation is "zero'd"
 
 
     // Start drawing
     //circle(viewport.w / 2.0, viewport.h / 2.0, min(viewport.w, viewport.h) * 0.45);
-
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glBegin(GL_POLYGON);                         // draw rectangle 
+	//glVertex3f(x val, y val, z val (won't change the point because of the projection type));
+	glVertex3f(150.0f, 150.0f, 0.0f);               // bottom left corner of rectangle
+	glVertex3f(150.0f, 200.0f, 0.0f);               // top left corner of rectangle
+	glVertex3f(250.0f, 200.0f, 0.0f);               // top right corner of rectangle
+	glVertex3f(250.0f, 150.0f, 0.0f);               // bottom right corner of rectangle
+	glEnd();
 
     glFlush();
     glutSwapBuffers();					// swap buffers (we earlier set double buffer)
@@ -447,13 +378,61 @@ void processFile(char* filename) {
         }
     }
 }
+void toggleShading() {
+	GLint* i = 0;
+	glGetIntegerv(GL_SHADE_MODEL, i);
+	printf("Switching shading mode.\n");
+	flatShading = !flatShading;
+}
+
+void toggleFill() {
+	printf("Switching fill mode.\n");
+	filledPolys = !filledPolys;
+}
 
 void keyboard(unsigned char key, int xmouse, int ymouse)
 {
-    switch (key) {
-    case ' ':
-        exit(0);
-    }
+	switch (key) {
+	case ' ':
+		exit(0);
+		break;
+	case 's':
+		toggleShading();
+		break;
+	case 'w':
+		toggleFill();
+		break;
+	}
+}
+
+void specKeyboard(int key, int x, int y) {
+	switch (key) {
+
+	case GLUT_KEY_UP:
+		printf("UP\n");
+		glTranslatef(0.0, 10.0, 0.0);
+		break;
+	case GLUT_KEY_DOWN:
+		printf("DOWN\n");
+		glTranslatef(0.0, -10.0, 0.0);
+		break;
+	case GLUT_KEY_RIGHT:
+		printf("RIGHT\n");
+		glTranslatef(10.0, 0.0, 0.0);
+		break;
+	case GLUT_KEY_LEFT:
+		printf("LEFT\n");
+		glTranslatef(-10.0, 0.0, 0.0);
+		break;
+	}
+}
+
+void idle() {
+	//nothing here for now
+#ifdef _WIN32
+	Sleep(10);                                   //give ~10ms back to OS (so as not to waste the CPU)
+#endif
+	glutPostRedisplay(); // forces glut to call the display function (myDisplay())
 }
 
 //****************************************************
@@ -461,7 +440,8 @@ void keyboard(unsigned char key, int xmouse, int ymouse)
 //****************************************************
 int main(int argc, char *argv[]) {
     processArgs(argc, argv);
-
+	flatShading = true;
+	filledPolys = true;
     //This initializes glut
     glutInit(&argc, argv);
 
@@ -481,10 +461,12 @@ int main(int argc, char *argv[]) {
 
     glutDisplayFunc(myDisplay);				// function to run when its time to draw something
     glutReshapeFunc(myReshape);				// function to run when the window gets resized
-
+	glutKeyboardFunc(keyboard);
+	glutIdleFunc(idle);
+	glutSpecialFunc(specKeyboard);
     glutMainLoop();							// infinite loop that will keep drawing and resizing
     // and whatever else
-    glutKeyboardFunc(keyboard);
+
 
     return 0;
 }
