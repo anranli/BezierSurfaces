@@ -35,19 +35,6 @@ public:
     int w, h; // width and height
 };
 
-class Light;
-
-class Light {
-public:
-    float r;
-    float g;
-    float b;
-    float x;
-    float y;
-    float z;
-    char type;
-};
-
 
 //****************************************************
 // Global Variables
@@ -60,14 +47,14 @@ Viewport	viewport;
 float rA, gA, bA;
 float rD, gD, bD;
 float rS, gS, bS, v;
-std::vector<Light> lights;
 
 string filename;
 float subdivisionSize;
 boolean isAdaptive;
 bool flatShading;
 bool filledPolys;
-
+bool keyBuffer[256];
+bool prevKeyBuffer[256];
 int numberOfPatches;
 vector<Surface> surface_list;
 
@@ -190,6 +177,52 @@ void setPixel(int x, int y, GLfloat r, GLfloat g, GLfloat b) {
     // bug on inst machines.
 }
 
+void drawRectangle(Point bl, Point tl, Point tr, Point br) {
+	glBegin(GL_POLYGON);                         // draw rectangle 
+	//glVertex3f(x val, y val, z val (won't change the point because of the projection type));
+	glVertex3f(bl.x, bl.y, bl.z);               // bottom left corner of rectangle
+	glVertex3f(tl.x, tl.y, tl.z);               // top left corner of rectangle
+	glVertex3f(tr.x, tr.y, tr.z);               // top right corner of rectangle
+	glVertex3f(br.x, br.y, br.z);               // bottom right corner of rectangle
+	glEnd();
+
+}
+bool checkKey(unsigned int s) {
+	return keyBuffer[s] && !prevKeyBuffer[s];
+}
+void handleKeyboardInput() {
+	
+	if (checkKey('w')) {
+		printf("Switching fill mode.\n");
+		prevKeyBuffer['w'] = true;
+		filledPolys = !filledPolys;
+	}
+	if (checkKey('s')) {
+		printf("Switching shading mode.\n");
+		prevKeyBuffer['s'] = true;
+		flatShading = !flatShading;
+	}
+	if (checkKey(GLUT_KEY_UP)) {
+		printf("UP\n");
+		prevKeyBuffer[GLUT_KEY_UP] = true;
+		glTranslatef(0.0, 10.0, 0.0);
+	}
+	if (checkKey(GLUT_KEY_DOWN)) {
+		printf("DOWN\n");
+		prevKeyBuffer[GLUT_KEY_DOWN] = true;
+		glTranslatef(0.0, -10.0, 0.0);
+	}
+	if (checkKey(GLUT_KEY_RIGHT)) {
+		printf("RIGHT\n");
+		prevKeyBuffer[GLUT_KEY_RIGHT] = true;
+		glTranslatef(10.0, 0.0, 0.0);
+	}
+	if (checkKey(GLUT_KEY_LEFT)) {
+		printf("LEFT\n");
+		prevKeyBuffer[GLUT_KEY_LEFT] = true;
+		glTranslatef(-10.0, 0.0, 0.0);
+	}
+}
 //****************************************************
 // function that does the actual drawing of stuff
 //***************************************************
@@ -199,19 +232,10 @@ void myDisplay() {
 
     glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
 	
-	if (filledPolys) {
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	}
-	else {
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	}
-	
-	if (flatShading) {
-		glShadeModel(GL_FLAT);
-	}
-	else {
-		glShadeModel(GL_SMOOTH);
-	}
+	handleKeyboardInput();
+
+	filledPolys ? glPolygonMode(GL_FRONT_AND_BACK, GL_FILL) : glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	flatShading ? glShadeModel(GL_FLAT) : glShadeModel(GL_SMOOTH);
 	
     glLoadIdentity();				        // make sure transformation is "zero'd"
 
@@ -219,13 +243,7 @@ void myDisplay() {
     // Start drawing
     //circle(viewport.w / 2.0, viewport.h / 2.0, min(viewport.w, viewport.h) * 0.45);
 	glColor3f(1.0f, 0.0f, 0.0f);
-	glBegin(GL_POLYGON);                         // draw rectangle 
-	//glVertex3f(x val, y val, z val (won't change the point because of the projection type));
-	glVertex3f(150.0f, 150.0f, 0.0f);               // bottom left corner of rectangle
-	glVertex3f(150.0f, 200.0f, 0.0f);               // top left corner of rectangle
-	glVertex3f(250.0f, 200.0f, 0.0f);               // top right corner of rectangle
-	glVertex3f(250.0f, 150.0f, 0.0f);               // bottom right corner of rectangle
-	glEnd();
+
 
     glFlush();
     glutSwapBuffers();					// swap buffers (we earlier set double buffer)
@@ -393,8 +411,7 @@ void processFile(char* filename) {
     }
 }
 void toggleShading() {
-	GLint* i = 0;
-	glGetIntegerv(GL_SHADE_MODEL, i);
+
 	printf("Switching shading mode.\n");
 	flatShading = !flatShading;
 }
@@ -404,42 +421,46 @@ void toggleFill() {
 	filledPolys = !filledPolys;
 }
 
-void keyboard(unsigned char key, int xmouse, int ymouse)
-{
-	switch (key) {
-	case ' ':
-		exit(0);
-		break;
-	case 's':
-		toggleShading();
-		break;
-	case 'w':
-		toggleFill();
-		break;
-	}
+void key(unsigned char key, int x, int y) {
+	prevKeyBuffer[key] = false;
+	keyBuffer[key] = true;
 }
 
-void specKeyboard(int key, int x, int y) {
-	switch (key) {
-
-	case GLUT_KEY_UP:
-		printf("UP\n");
-		glTranslatef(0.0, 10.0, 0.0);
-		break;
-	case GLUT_KEY_DOWN:
-		printf("DOWN\n");
-		glTranslatef(0.0, -10.0, 0.0);
-		break;
-	case GLUT_KEY_RIGHT:
-		printf("RIGHT\n");
-		glTranslatef(10.0, 0.0, 0.0);
-		break;
-	case GLUT_KEY_LEFT:
-		printf("LEFT\n");
-		glTranslatef(-10.0, 0.0, 0.0);
-		break;
-	}
+void keyUp(unsigned char key, int x, int y) {
+	prevKeyBuffer[key] = true;
+	keyBuffer[key] = false;
 }
+
+void specKey(int key, int x, int y) {
+	prevKeyBuffer[key] = false;
+	keyBuffer[key] = true;
+}
+
+void specKeyUp(int key, int x, int y) {
+	prevKeyBuffer[key] = true;
+	keyBuffer[key] = false;
+}
+//void specKeyboard(int key, int x, int y) {
+//	switch (key) {
+//
+//	case GLUT_KEY_UP:
+//		printf("UP\n");
+//		glTranslatef(0.0, 10.0, 0.0);
+//		break;
+//	case GLUT_KEY_DOWN:
+//		printf("DOWN\n");
+//		glTranslatef(0.0, -10.0, 0.0);
+//		break;
+//	case GLUT_KEY_RIGHT:
+//		printf("RIGHT\n");
+//		glTranslatef(10.0, 0.0, 0.0);
+//		break;
+//	case GLUT_KEY_LEFT:
+//		printf("LEFT\n");
+//		glTranslatef(-10.0, 0.0, 0.0);
+//		break;
+//	}
+//}
 
 void idle() {
 	//nothing here for now
@@ -477,9 +498,11 @@ int main(int argc, char *argv[]) {
 
     glutDisplayFunc(myDisplay);				// function to run when its time to draw something
     glutReshapeFunc(myReshape);				// function to run when the window gets resized
-	glutKeyboardFunc(keyboard);
+	glutKeyboardFunc(key);
+	glutKeyboardUpFunc(keyUp);
+	glutSpecialFunc(specKey);
+	glutSpecialUpFunc(specKeyUp);
 	glutIdleFunc(idle);
-	glutSpecialFunc(specKeyboard);
     glutMainLoop();							// infinite loop that will keep drawing and resizing
     // and whatever else
 
