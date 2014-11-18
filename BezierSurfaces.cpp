@@ -71,7 +71,8 @@ bool filledPolys;
 int numberOfPatches;
 vector<Surface> surface_list;
 
-vector<Point> patch_points;
+int numdiv;
+std::vector<std::vector<Point> > patch_points;
 
 ///////////////////////////////////////////////
 
@@ -230,6 +231,19 @@ void myDisplay() {
     glutSwapBuffers();					// swap buffers (we earlier set double buffer)
 }
 
+void drawSurface(){
+    for (Surface s : surface_list) {
+        subdividepatch(s, subdivisionSize);
+
+        for (int iu = 0; iu < numdiv; iu++) {
+            for (int iv = 0; iv < numdiv; iv++) {
+                drawRectangle(patch_points[iu][iv], patch_points[iu][iv + 1], patch_points[iu + 1][iv + 1], patch_points[iu + 1][iv]);
+            }
+
+        }
+    }
+}
+
 Vector cross(Vector a, Vector b) {
     return Vector(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 }
@@ -287,7 +301,7 @@ Point bezpatchinterp(Surface patch, float u, float v) {
 
 void subdividepatch(Surface patch, float step) {
     float epsilon = 0.0001; //TODO fix maybe
-    float numdiv = ((1) / step);
+    numdiv = (1 / step);
 
     for (int iu = 0; iu < numdiv; iu++) {
         float u = iu*step;
@@ -296,7 +310,7 @@ void subdividepatch(Surface patch, float step) {
 
             Point p = bezpatchinterp(patch, u, v);
 
-            patch_points.push_back(p);
+            patch_points[iu][iv] = p;
         }
 
     }
@@ -440,6 +454,8 @@ void idle() {
 //****************************************************
 int main(int argc, char *argv[]) {
     processArgs(argc, argv);
+
+
 	flatShading = true;
 	filledPolys = true;
     //This initializes glut
