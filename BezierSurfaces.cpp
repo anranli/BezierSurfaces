@@ -241,7 +241,7 @@ void myDisplay() {
 
 
     // Start drawing
-    //circle(viewport.w / 2.0, viewport.h / 2.0, min(viewport.w, viewport.h) * 0.45);
+    
 	glColor3f(1.0f, 0.0f, 0.0f);
 
 
@@ -249,18 +249,6 @@ void myDisplay() {
     glutSwapBuffers();					// swap buffers (we earlier set double buffer)
 }
 
-void drawSurface(){
-    for (Surface s : surface_list) {
-        subdividepatch(s, subdivisionSize);
-
-        for (int iu = 0; iu < numdiv; iu++) {
-            for (int iv = 0; iv < numdiv; iv++) {
-                drawRectangle(patch_points[iu][iv], patch_points[iu][iv + 1], patch_points[iu + 1][iv + 1], patch_points[iu + 1][iv]);
-            }
-
-        }
-    }
-}
 
 Vector cross(Vector a, Vector b) {
     return Vector(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
@@ -332,6 +320,20 @@ void subdividepatch(Surface patch, float step) {
         }
 
     }
+}
+
+
+void drawSurface(){
+	for (Surface s : surface_list) {
+		subdividepatch(s, subdivisionSize);
+
+		for (int iu = 0; iu < numdiv; iu++) {
+			for (int iv = 0; iv < numdiv; iv++) {
+				drawRectangle(patch_points[iu][iv], patch_points[iu][iv + 1], patch_points[iu + 1][iv + 1], patch_points[iu + 1][iv]);
+			}
+
+		}
+	}
 }
 
 void processArgs(int argc, char *argv[]) {
