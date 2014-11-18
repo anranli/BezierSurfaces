@@ -28,12 +28,33 @@ inline float sqr(float x) { return x*x; }
 
 using namespace std;
 
+class Point;
+
+class Vector {
+public:
+    float x, y, z;
+    Vector();
+    Vector(float a, float b, float c);
+    Vector(Point a, Point b);
+    void normalize();
+    void scalarMult(float s);
+
+
+    /*Vector add(Vector);
+    Vector sub(Vector);
+    Vector mul(float);
+    Vector div(float);
+    Vector normalize();*/
+};
+
 class Point {
 public:
     float x, y, z;
+    Vector derivative, normal;
     Point();
     Point(float a, float b, float c);
-    //Point add(Vector);
+    void scalarMult(float s);
+    Point add(Point p);
     //Point sub(Vector);
 };
 

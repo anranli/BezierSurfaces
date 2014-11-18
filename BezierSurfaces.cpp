@@ -76,6 +76,41 @@ boolean isAdaptive;
 int numberOfPatches;
 vector<Surface> surface_list;
 
+vector<Point> patch_points;
+
+///////////////////////////////////////////////
+
+Vector::Vector() {
+    x = 0.0f;
+    y = 0.0f;
+    z = 0.0f;
+}
+
+Vector::Vector(float a, float b, float c) {
+    x = a;
+    y = b;
+    z = c;
+}
+
+Vector::Vector(Point a, Point b) {
+    float scale = sqrt(pow((b.x - a.x), 2) + pow((b.y - a.y), 2) + pow((b.z - a.z), 2));
+    x = (b.x - a.x) / scale;
+    y = (b.y - a.y) / scale;
+    z = (b.z - a.z) / scale;
+}
+
+void Vector::normalize() {
+    float scale = sqrt(pow((x), 2) + pow((y), 2) + pow((z), 2));
+    x /= scale;
+    y /= scale;
+    z /= scale;
+}
+
+void Vector::scalarMult(float s) {
+    x *= s;
+    y *= s;
+    z *= s;
+}
 
 Point::Point() {
     x = 0.0f;
@@ -87,6 +122,18 @@ Point::Point(float a, float b, float c) {
     x = a;
     y = b;
     z = c;
+}
+
+void Point::scalarMult(float s) {
+    x *= s;
+    y *= s;
+    z *= s;
+}
+
+Point Point::add(Point p) {
+    x += p.x;
+    y += p.y;
+    z += p.z;
 }
 
 Curve::Curve() {
@@ -154,55 +201,7 @@ void setPixel(int x, int y, GLfloat r, GLfloat g, GLfloat b) {
 // Draw a filled circle.  
 //****************************************************
 
-std::vector<float> getAmbient(Light l){
-    std::vector<float> amb = { rA*l.r, gA*l.g, bA*l.b };
-    return amb;
-}
-
-std::vector<float> getDiffuse(Light l, std::vector<float> point, float radius){
-    std::vector<float> dir;
-    if (l.type == 'p') {
-        float scale = sqrt(pow((point[0] - l.x), 2) + pow((point[1] - l.y), 2) + pow((point[2] - l.z), 2));
-        dir = { (point[0] - l.x) / scale, (point[1] - l.y) / scale, (point[2] - l.z) / scale };
-    }
-    else /*if (l.type == 'd')*/ {
-        float scale = sqrt(pow((l.x), 2) + pow((l.y), 2) + pow((l.z), 2));
-        dir = { (l.x) / scale, (l.y) / scale, (l.z) / scale };
-    }
-    float scaleN = sqrt(pow((0.0f - point[0]), 2) + pow((0.0f - point[1]), 2) + pow((0.0f - point[2]), 2));
-    std::vector<float> normal = { (0.0f - point[0]) / scaleN, (0.0f - point[1]) / scaleN, (0.0f - point[2]) / scaleN };
-
-    float term = max(dir[0] * normal[0] + dir[1] * normal[1] + dir[2] * normal[2], 0.0f);
-
-    std::vector<float> diff = { rD*l.r*term, gD*l.g*term, bD*l.b*term };
-    return diff;
-}
-
-std::vector<float> getSpecular(Light l, std::vector<float> point, float radius){
-    std::vector<float> dir;
-    float scaleN = sqrt(pow((0.0f - point[0]), 2) + pow((0.0f - point[1]), 2) + pow((0.0f - point[2]), 2));
-    std::vector<float> normal = { (0.0f - point[0]) / scaleN, (0.0f - point[1]) / scaleN, (0.0f - point[2]) / scaleN };
-    if (l.type == 'p') {
-        float scale = sqrt(pow((point[0] - l.x), 2) + pow((point[1] - l.y), 2) + pow((point[2] - l.z), 2));
-        dir = { (point[0] - l.x) / scale, (point[1] - l.y) / scale, (point[2] - l.z) / scale };
-    }
-    else /*if (l.type == 'd')*/ {
-        float scale = sqrt(pow((l.x), 2) + pow((l.y), 2) + pow((l.z), 2));
-        dir = { (l.x) / scale, (l.y) / scale, (l.z) / scale };
-    }
-
-    //Rr = Ri - 2 N (Ri . N)
-    float dirDotN = dir[0] * normal[0] + dir[1] * normal[1] + dir[2] * normal[2];
-    std::vector<float> ref = { dir[0] - (2 * normal[0] * dirDotN), dir[1] - (2 * normal[1] * dirDotN), dir[2] - (2 * normal[2] * dirDotN) };
-    std::vector<float> view = { 0.0f, 0.0f, 1.0f };
-
-    float term = pow(max(ref[0] * view[0] + ref[1] * view[1] + ref[2] * view[2], 0.0f), v);
-
-    std::vector<float> spec = { rS*l.r*term, gS*l.g*term, bS*l.b*term };
-    return spec;
-}
-
-void circle(float centerX, float centerY, float radius) {
+/*void circle(float centerX, float centerY, float radius) {
     // Draw inner circle
     glBegin(GL_POINTS);
 
@@ -280,7 +279,7 @@ void circle(float centerX, float centerY, float radius) {
 
 
     glEnd();
-}
+}*/
 //****************************************************
 // function that does the actual drawing of stuff
 //***************************************************
@@ -293,11 +292,83 @@ void myDisplay() {
 
 
     // Start drawing
-    circle(viewport.w / 2.0, viewport.h / 2.0, min(viewport.w, viewport.h) * 0.45);
+    //circle(viewport.w / 2.0, viewport.h / 2.0, min(viewport.w, viewport.h) * 0.45);
 
 
     glFlush();
     glutSwapBuffers();					// swap buffers (we earlier set double buffer)
+}
+
+Vector cross(Vector a, Vector b) {
+    return Vector(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+}
+
+Point bezcurveinterp(Curve curve, float u) {
+    curve.a.scalarMult(1.0 - u);
+    curve.b.scalarMult(u);
+    Point a1 = curve.a.add(curve.b);
+    curve.b.scalarMult(1.0 - u);
+    curve.c.scalarMult(u);
+    Point b1 = curve.b.add(curve.c);
+    curve.c.scalarMult(1.0 - u);
+    curve.d.scalarMult(u);
+    Point c1 = curve.c.add(curve.d);
+
+    a1.scalarMult(1.0 - u);
+    b1.scalarMult(u);
+    Point d1 = a1.add(b1);
+    b1.scalarMult(1.0 - u);
+    c1.scalarMult(u);
+    Point e1 = b1.add(c1);
+
+    d1.scalarMult(1.0 - u);
+    e1.scalarMult(u);
+    Point p = d1.add(e1);
+    Vector der (d1, e1);
+    der.scalarMult(3);
+    p.derivative = der;
+
+    return p;
+}
+
+Point bezpatchinterp(Surface patch, float u, float v) {
+    Point va = bezcurveinterp(patch.a, u);
+    Point vb = bezcurveinterp(patch.b, u);
+    Point vc = bezcurveinterp(patch.c, u);
+    Point vd = bezcurveinterp(patch.d, u);
+    Curve vcurve(va, vb, vc, vd);
+
+    Point ua = bezcurveinterp(patch.a, v);
+    Point ub = bezcurveinterp(patch.b, v);
+    Point uc = bezcurveinterp(patch.c, v);
+    Point ud = bezcurveinterp(patch.d, v);
+    Curve ucurve(ua, ub, uc, ud);
+
+    Point pv = bezcurveinterp(vcurve, v);
+    Point pu = bezcurveinterp(ucurve, u);
+
+    Point* p = new Point();
+    *p = pu;
+    p->normal = cross(pu.derivative, pv.derivative);
+    p->normal.normalize();
+    return *p;
+}
+
+void subdividepatch(Surface patch, float step) {
+    float epsilon = 0.0001; //TODO fix maybe
+    float numdiv = ((1) / step);
+
+    for (int iu = 0; iu < numdiv; iu++) {
+        float u = iu*step;
+        for (int iv = 0; iv < numdiv; iv++) {
+            float v = iv*step;
+
+            Point p = bezpatchinterp(patch, u, v);
+
+            patch_points.push_back(p);
+        }
+
+    }
 }
 
 void processArgs(int argc, char *argv[]) {
