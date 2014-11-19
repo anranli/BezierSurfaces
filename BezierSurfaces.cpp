@@ -158,7 +158,9 @@ void myReshape(int w, int h) {
     glViewport(0, 0, viewport.w, viewport.h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(0, viewport.w, 0, viewport.h);
+    //gluOrtho2D(0, viewport.w, 0, viewport.h);
+	glOrtho(-1, 1, -1, 1, 1, -1);    // resize type = stretch
+
 
 }
 
@@ -226,28 +228,7 @@ void handleKeyboardInput() {
 //****************************************************
 // function that does the actual drawing of stuff
 //***************************************************
-void myDisplay() {
 
-    glClear(GL_COLOR_BUFFER_BIT);				// clear the color buffer
-
-    glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
-	
-	handleKeyboardInput();
-
-	filledPolys ? glPolygonMode(GL_FRONT_AND_BACK, GL_FILL) : glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	flatShading ? glShadeModel(GL_FLAT) : glShadeModel(GL_SMOOTH);
-	
-    glLoadIdentity();				        // make sure transformation is "zero'd"
-
-
-    // Start drawing
-    
-	glColor3f(1.0f, 0.0f, 0.0f);
-
-
-    glFlush();
-    glutSwapBuffers();					// swap buffers (we earlier set double buffer)
-}
 
 
 Vector cross(Vector a, Vector b) {
@@ -308,15 +289,17 @@ Point bezpatchinterp(Surface patch, float u, float v) {
 void subdividepatch(Surface patch, float step) {
     float epsilon = 0.0001; //TODO fix maybe
     numdiv = (1 / step);
-
-    for (int iu = 0; iu < numdiv; iu++) {
+	step = 1.0 / numdiv;
+	
+	for (int iu = 0; iu < numdiv; iu++) {
         float u = iu*step;
+		patch_points.push_back(vector<Point>());
         for (int iv = 0; iv < numdiv; iv++) {
             float v = iv*step;
 
             Point p = bezpatchinterp(patch, u, v);
-
-            patch_points[iu][iv] = p;
+			patch_points[iu].push_back(p);
+            //patch_points[iu][iv] = p;
         }
 
     }
@@ -327,23 +310,47 @@ void drawSurface(){
 	for (Surface s : surface_list) {
 		subdividepatch(s, subdivisionSize);
 
-		for (int iu = 0; iu < numdiv; iu++) {
-			for (int iv = 0; iv < numdiv; iv++) {
-				drawRectangle(patch_points[iu][iv], patch_points[iu][iv + 1], patch_points[iu + 1][iv + 1], patch_points[iu + 1][iv]);
+		for (int iu = 0; iu + 1 < numdiv; iu++) {
+			for (int iv = 0; iv + 1 < numdiv; iv++) {
+				Point ll, lr, ul, ur;
+				ll = patch_points[iu][iv];
+				lr = patch_points[iu][iv + 1];
+				ur = patch_points[iu + 1][iv + 1];
+				ul = patch_points[iu + 1][iv];
+				drawRectangle(ll, ul, ur, lr);
 			}
 
 		}
 	}
 }
 
-void processArgs(int argc, char *argv[]) {
-    filename = string(argv[1]);
-    char* temp = argv[1];
-    subdivisionSize = strtof(argv[2], &temp);
+void myDisplay() {
+
+	glClear(GL_COLOR_BUFFER_BIT);				// clear the color buffer
+
+	glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
+
+	handleKeyboardInput();
+
+	filledPolys ? glPolygonMode(GL_FRONT_AND_BACK, GL_FILL) : glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	flatShading ? glShadeModel(GL_FLAT) : glShadeModel(GL_SMOOTH);
+
+	glLoadIdentity();				        // make sure transformation is "zero'd"
+
+
+	// Start drawing
+
+	glColor3f(1.0f, 0.0f, 0.0f);
+	drawSurface();
+
+	glFlush();
+	glutSwapBuffers();					// swap buffers (we earlier set double buffer)
 }
+
 
 void processFile(char* filename) {
     // create a file-reading object
+	vector<Curve> curve_list;
     ifstream fin;
     fin.open(filename); // open a file
     if (!fin.good()) {
@@ -365,6 +372,12 @@ void processFile(char* filename) {
 
         // parse the line
         token[0] = strtok(buf, DELIMITER); // first token
+
+
+		if (!token[0]){
+			continue;
+		}
+
         if (token[0]) // zero if line is blank
         {
             for (n = 1; n < MAX_TOKENS_PER_LINE; n++)
@@ -377,7 +390,6 @@ void processFile(char* filename) {
         char* temp = "";
         std::string str(token[0]);
 
-        vector<Curve> curve_list;
 
         // process the tokens
         if (!token[1]) { //pls
@@ -412,6 +424,15 @@ void processFile(char* filename) {
         }
     }
 }
+
+void processArgs(int argc, char *argv[]) {
+	filename = string(argv[1]);
+	char* temp = argv[1];
+	subdivisionSize = strtof(argv[2], &temp);
+	processFile(argv[1]);
+}
+
+
 void toggleShading() {
 
 	printf("Switching shading mode.\n");
@@ -442,27 +463,7 @@ void specKeyUp(int key, int x, int y) {
 	prevKeyBuffer[key] = true;
 	keyBuffer[key] = false;
 }
-//void specKeyboard(int key, int x, int y) {
-//	switch (key) {
-//
-//	case GLUT_KEY_UP:
-//		printf("UP\n");
-//		glTranslatef(0.0, 10.0, 0.0);
-//		break;
-//	case GLUT_KEY_DOWN:
-//		printf("DOWN\n");
-//		glTranslatef(0.0, -10.0, 0.0);
-//		break;
-//	case GLUT_KEY_RIGHT:
-//		printf("RIGHT\n");
-//		glTranslatef(10.0, 0.0, 0.0);
-//		break;
-//	case GLUT_KEY_LEFT:
-//		printf("LEFT\n");
-//		glTranslatef(-10.0, 0.0, 0.0);
-//		break;
-//	}
-//}
+
 
 void idle() {
 	//nothing here for now
