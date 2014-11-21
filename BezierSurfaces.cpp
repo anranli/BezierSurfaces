@@ -60,6 +60,7 @@ float xVal;
 float yVal;
 float xRotVal;
 float yRotVal;
+float zoom;
 vector<Surface> surface_list;
 
 int numdiv;
@@ -235,6 +236,7 @@ void initScene(){
 	yVal = 0.0;
 	xRotVal = 0.0;
 	yRotVal = 0.0;
+	zoom = 1.0;
 }
 
 
@@ -355,6 +357,7 @@ void myDisplay() {
 	glTranslatef(xVal, yVal, 0.0);
 	glRotatef(xRotVal, 1.0, 0.0, 0.0);
 	glRotatef(yRotVal, 0.0, 1.0, 0.0);
+	glScalef(zoom, zoom, zoom);
 	// Start drawing
     
     // ...
@@ -479,6 +482,12 @@ void key(unsigned char key, int x, int y) {
 		break;
 	case 's':
 		toggleShading();
+		break;
+	case '+':
+		zoom += 0.5;
+		break;
+	case '-':
+		zoom -= 0.5;
 		break;
 	}
 }
