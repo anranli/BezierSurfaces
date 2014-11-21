@@ -89,10 +89,8 @@ void Vector::normalize() {
     z /= scale;
 }
 
-void Vector::scalarMult(float s) {
-    x *= s;
-    y *= s;
-    z *= s;
+Vector Vector::scalarMult(float s) {
+    return Vector(x*s, y*s, z*s);
 }
 
 Point::Point() {
@@ -107,10 +105,8 @@ Point::Point(float a, float b, float c) {
     z = c;
 }
 
-void Point::scalarMult(float s) {
-    x *= s;
-    y *= s;
-    z *= s;
+Point Point::scalarMult(float s) {
+    return Point(x*s, y*s, z*s);
 }
 
 Point Point::add(Point p) {
@@ -140,93 +136,7 @@ Surface::Surface(Curve a1, Curve b1, Curve c1, Curve d1) {
 }
 
 //****************************************************
-// Simple init function
-//****************************************************
-void initScene(){
-
-
-}
-
-
-//****************************************************
-// reshape viewport if the window is resized
-//****************************************************
-void myReshape(int w, int h) {
-    viewport.w = w;
-    viewport.h = h;
-
-    glViewport(0, 0, viewport.w, viewport.h);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    //gluOrtho2D(0, viewport.w, 0, viewport.h);
-	glOrtho(-1, 1, -1, 1, 1, -1);    // resize type = stretch
-
-
-}
-
-
-//****************************************************
-// A routine to set a pixel by drawing a GL point.  This is not a
-// general purpose routine as it assumes a lot of stuff specific to
-// this example.
-//****************************************************
-
-void setPixel(int x, int y, GLfloat r, GLfloat g, GLfloat b) {
-    glColor3f(r, g, b);
-    glVertex2f(x + 0.5, y + 0.5);   // The 0.5 is to target pixel
-    // centers 
-    // Note: Need to check for gap
-    // bug on inst machines.
-}
-
-void drawRectangle(Point bl, Point tl, Point tr, Point br) {
-	glBegin(GL_POLYGON);                         // draw rectangle 
-	//glVertex3f(x val, y val, z val (won't change the point because of the projection type));
-	glVertex3f(bl.x, bl.y, bl.z);               // bottom left corner of rectangle
-	glVertex3f(tl.x, tl.y, tl.z);               // top left corner of rectangle
-	glVertex3f(tr.x, tr.y, tr.z);               // top right corner of rectangle
-	glVertex3f(br.x, br.y, br.z);               // bottom right corner of rectangle
-	glEnd();
-
-}
-bool checkKey(unsigned int s) {
-	return keyBuffer[s] && !prevKeyBuffer[s];
-}
-void handleKeyboardInput() {
-	
-	if (checkKey('w')) {
-		printf("Switching fill mode.\n");
-		prevKeyBuffer['w'] = true;
-		filledPolys = !filledPolys;
-	}
-	if (checkKey('s')) {
-		printf("Switching shading mode.\n");
-		prevKeyBuffer['s'] = true;
-		flatShading = !flatShading;
-	}
-	if (checkKey(GLUT_KEY_UP)) {
-		printf("UP\n");
-		prevKeyBuffer[GLUT_KEY_UP] = true;
-		glTranslatef(0.0, 10.0, 0.0);
-	}
-	if (checkKey(GLUT_KEY_DOWN)) {
-		printf("DOWN\n");
-		prevKeyBuffer[GLUT_KEY_DOWN] = true;
-		glTranslatef(0.0, -10.0, 0.0);
-	}
-	if (checkKey(GLUT_KEY_RIGHT)) {
-		printf("RIGHT\n");
-		prevKeyBuffer[GLUT_KEY_RIGHT] = true;
-		glTranslatef(10.0, 0.0, 0.0);
-	}
-	if (checkKey(GLUT_KEY_LEFT)) {
-		printf("LEFT\n");
-		prevKeyBuffer[GLUT_KEY_LEFT] = true;
-		glTranslatef(-10.0, 0.0, 0.0);
-	}
-}
-//****************************************************
-// function that does the actual drawing of stuff
+// logic below
 //***************************************************
 
 
@@ -236,29 +146,16 @@ Vector cross(Vector a, Vector b) {
 }
 
 Point bezcurveinterp(Curve curve, float u) {
-    curve.a.scalarMult(1.0 - u);
-    curve.b.scalarMult(u);
-    Point a1 = curve.a.add(curve.b);
-    curve.b.scalarMult(1.0 - u);
-    curve.c.scalarMult(u);
-    Point b1 = curve.b.add(curve.c);
-    curve.c.scalarMult(1.0 - u);
-    curve.d.scalarMult(u);
-    Point c1 = curve.c.add(curve.d);
+    Point a1 = curve.a.scalarMult(1.0 - u).add(curve.b.scalarMult(u));
+    Point b1 = curve.b.scalarMult(1.0 - u).add(curve.c.scalarMult(u));
+    Point c1 = curve.c.scalarMult(1.0 - u).add(curve.d.scalarMult(u));
 
-    a1.scalarMult(1.0 - u);
-    b1.scalarMult(u);
-    Point d1 = a1.add(b1);
-    b1.scalarMult(1.0 - u);
-    c1.scalarMult(u);
-    Point e1 = b1.add(c1);
+    Point d1 = a1.scalarMult(1.0 - u).add(b1.scalarMult(u));
+    Point e1 = b1.scalarMult(1.0 - u).add(c1.scalarMult(u));
 
-    d1.scalarMult(1.0 - u);
-    e1.scalarMult(u);
-    Point p = d1.add(e1);
-    Vector der (d1, e1);
-    der.scalarMult(3);
-    p.derivative = der;
+    Point p = d1.scalarMult(1.0 - u).add(e1.scalarMult(u));
+    Vector der (d1, e1); //TODO is this normalized??
+    p.derivative = der.scalarMult(3);
 
     return p;
 }
@@ -270,10 +167,14 @@ Point bezpatchinterp(Surface patch, float u, float v) {
     Point vd = bezcurveinterp(patch.d, u);
     Curve vcurve(va, vb, vc, vd);
 
-    Point ua = bezcurveinterp(patch.a, v);
-    Point ub = bezcurveinterp(patch.b, v);
-    Point uc = bezcurveinterp(patch.c, v);
-    Point ud = bezcurveinterp(patch.d, v);
+    Curve c1(patch.a.a, patch.b.a, patch.c.a, patch.d.a);
+    Curve c2(patch.a.b, patch.b.b, patch.c.b, patch.d.b);
+    Curve c3(patch.a.c, patch.b.c, patch.c.c, patch.d.c);
+    Curve c4(patch.a.d, patch.b.d, patch.c.d, patch.d.d);
+    Point ua = bezcurveinterp(c1, v);
+    Point ub = bezcurveinterp(c2, v);
+    Point uc = bezcurveinterp(c3, v);
+    Point ud = bezcurveinterp(c4, v);
     Curve ucurve(ua, ub, uc, ud);
 
     Point pv = bezcurveinterp(vcurve, v);
@@ -305,6 +206,79 @@ void subdividepatch(Surface patch, float step) {
     }
 }
 
+//****************************************************
+// Simple init function
+//****************************************************
+void initScene(){
+
+
+}
+
+
+//****************************************************
+// reshape viewport if the window is resized
+//****************************************************
+void myReshape(int w, int h) {
+    viewport.w = w;
+    viewport.h = h;
+
+    glViewport(0, 0, viewport.w, viewport.h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    //gluOrtho2D(0, viewport.w, 0, viewport.h);
+    //glOrtho(-1, 1, -1, 1, 1, -1);    // resize type = stretch
+    glOrtho(-3, 3, -3, 3, 3, -3);    // resize type = stretch
+
+}
+
+bool checkKey(unsigned int s) {
+    return keyBuffer[s] && !prevKeyBuffer[s];
+}
+
+void handleKeyboardInput() {
+
+    if (checkKey('w')) {
+        printf("Switching fill mode.\n");
+        prevKeyBuffer['w'] = true;
+        filledPolys = !filledPolys;
+    }
+    if (checkKey('s')) {
+        printf("Switching shading mode.\n");
+        prevKeyBuffer['s'] = true;
+        flatShading = !flatShading;
+    }
+    if (checkKey(GLUT_KEY_UP)) {
+        printf("UP\n");
+        prevKeyBuffer[GLUT_KEY_UP] = true;
+        glTranslatef(0.0, 10.0, 0.0);
+    }
+    if (checkKey(GLUT_KEY_DOWN)) {
+        printf("DOWN\n");
+        prevKeyBuffer[GLUT_KEY_DOWN] = true;
+        glTranslatef(0.0, -10.0, 0.0);
+    }
+    if (checkKey(GLUT_KEY_RIGHT)) {
+        printf("RIGHT\n");
+        prevKeyBuffer[GLUT_KEY_RIGHT] = true;
+        glTranslatef(10.0, 0.0, 0.0);
+    }
+    if (checkKey(GLUT_KEY_LEFT)) {
+        printf("LEFT\n");
+        prevKeyBuffer[GLUT_KEY_LEFT] = true;
+        glTranslatef(-10.0, 0.0, 0.0);
+    }
+}
+
+void drawRectangle(Point bl, Point tl, Point tr, Point br) {
+    glBegin(GL_POLYGON);                         // draw rectangle 
+    //glVertex3f(x val, y val, z val (won't change the point because of the projection type));
+    glVertex3f(bl.x, bl.y, bl.z);               // bottom left corner of rectangle
+    glVertex3f(tl.x, tl.y, tl.z);               // top left corner of rectangle
+    glVertex3f(tr.x, tr.y, tr.z);               // top right corner of rectangle
+    glVertex3f(br.x, br.y, br.z);               // bottom right corner of rectangle
+    glEnd();
+
+}
 
 void drawSurface(){
 	for (Surface s : surface_list) {
@@ -321,6 +295,7 @@ void drawSurface(){
 			}
 
 		}
+        patch_points.clear();
 	}
 }
 
@@ -396,6 +371,7 @@ void processFile(char* filename) {
             numberOfPatches = atoi(token[0]);
         }
         else {
+            //vector<Point>
             Point a;
             a.x = strtof(token[0], &temp);
             a.y = strtof(token[1], &temp);
@@ -430,18 +406,6 @@ void processArgs(int argc, char *argv[]) {
 	char* temp = argv[1];
 	subdivisionSize = strtof(argv[2], &temp);
 	processFile(argv[1]);
-}
-
-
-void toggleShading() {
-
-	printf("Switching shading mode.\n");
-	flatShading = !flatShading;
-}
-
-void toggleFill() {
-	printf("Switching fill mode.\n");
-	filledPolys = !filledPolys;
 }
 
 void key(unsigned char key, int x, int y) {
@@ -505,6 +469,7 @@ int main(int argc, char *argv[]) {
 	glutKeyboardUpFunc(keyUp);
 	glutSpecialFunc(specKey);
 	glutSpecialUpFunc(specKeyUp);
+
 	glutIdleFunc(idle);
     glutMainLoop();							// infinite loop that will keep drawing and resizing
     // and whatever else

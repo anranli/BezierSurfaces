@@ -37,7 +37,7 @@ public:
     Vector(float a, float b, float c);
     Vector(Point a, Point b);
     void normalize();
-    void scalarMult(float s);
+    Vector scalarMult(float s);
 
 
     /*Vector add(Vector);
@@ -53,7 +53,7 @@ public:
     Vector derivative, normal;
     Point();
     Point(float a, float b, float c);
-    void scalarMult(float s);
+    Point scalarMult(float s);
     Point add(Point p);
     //Point sub(Vector);
 };
@@ -68,6 +68,7 @@ public:
 class Surface {
 public:
     Curve a, b, c, d;
+    //vector<vector<Point>> points;
     Surface();
     Surface(Curve a1, Curve b1, Curve c1, Curve d1);
 };
