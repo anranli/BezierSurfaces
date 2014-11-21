@@ -56,6 +56,10 @@ bool filledPolys;
 bool keyBuffer[256];
 bool prevKeyBuffer[256];
 int numberOfPatches;
+float xVal;
+float yVal;
+float xRotVal;
+float yRotVal;
 vector<Surface> surface_list;
 
 int numdiv;
@@ -210,8 +214,10 @@ void subdividepatch(Surface patch, float step) {
 // Simple init function
 //****************************************************
 void initScene(){
-
-
+	xVal = 0.0;
+	yVal = 0.0;
+	xRotVal = 0.0;
+	yRotVal = 0.0;
 }
 
 
@@ -235,39 +241,39 @@ bool checkKey(unsigned int s) {
     return keyBuffer[s] && !prevKeyBuffer[s];
 }
 
-void handleKeyboardInput() {
-
-    if (checkKey('w')) {
-        printf("Switching fill mode.\n");
-        prevKeyBuffer['w'] = true;
-        filledPolys = !filledPolys;
-    }
-    if (checkKey('s')) {
-        printf("Switching shading mode.\n");
-        prevKeyBuffer['s'] = true;
-        flatShading = !flatShading;
-    }
-    if (checkKey(GLUT_KEY_UP)) {
-        printf("UP\n");
-        prevKeyBuffer[GLUT_KEY_UP] = true;
-        glTranslatef(0.0, 10.0, 0.0);
-    }
-    if (checkKey(GLUT_KEY_DOWN)) {
-        printf("DOWN\n");
-        prevKeyBuffer[GLUT_KEY_DOWN] = true;
-        glTranslatef(0.0, -10.0, 0.0);
-    }
-    if (checkKey(GLUT_KEY_RIGHT)) {
-        printf("RIGHT\n");
-        prevKeyBuffer[GLUT_KEY_RIGHT] = true;
-        glTranslatef(10.0, 0.0, 0.0);
-    }
-    if (checkKey(GLUT_KEY_LEFT)) {
-        printf("LEFT\n");
-        prevKeyBuffer[GLUT_KEY_LEFT] = true;
-        glTranslatef(-10.0, 0.0, 0.0);
-    }
-}
+//void handleKeyboardInput() {
+//	
+//    if (checkKey('w')) {
+//        printf("Switching fill mode.\n");
+//        prevKeyBuffer['w'] = true;
+//        filledPolys = !filledPolys;
+//    }
+//    if (checkKey('s')) {
+//        printf("Switching shading mode.\n");
+//        prevKeyBuffer['s'] = true;
+//        flatShading = !flatShading;
+//    }
+//    if (checkKey(GLUT_KEY_UP) && mod == GLUT_ACTIVE_SHIFT) {
+//        printf("UP\n");
+//        prevKeyBuffer[GLUT_KEY_UP] = true;
+//        glTranslatef(0.0, 10.0, 0.0);
+//    }
+//    if (checkKey(GLUT_KEY_DOWN)) {
+//        printf("DOWN\n");
+//        prevKeyBuffer[GLUT_KEY_DOWN] = true;
+//        glTranslatef(0.0, -10.0, 0.0);
+//    }
+//    if (checkKey(GLUT_KEY_RIGHT)) {
+//        printf("RIGHT\n");
+//        prevKeyBuffer[GLUT_KEY_RIGHT] = true;
+//        glTranslatef(10.0, 0.0, 0.0);
+//    }
+//    if (checkKey(GLUT_KEY_LEFT)) {
+//        printf("LEFT\n");
+//        prevKeyBuffer[GLUT_KEY_LEFT] = true;
+//        glTranslatef(-10.0, 0.0, 0.0);
+//    }
+//}
 
 void drawRectangle(Point bl, Point tl, Point tr, Point br) {
     glBegin(GL_POLYGON);                         // draw rectangle 
@@ -305,18 +311,22 @@ void myDisplay() {
 
 	glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
 
-	handleKeyboardInput();
+	//handleKeyboardInput();
 
 	filledPolys ? glPolygonMode(GL_FRONT_AND_BACK, GL_FILL) : glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	flatShading ? glShadeModel(GL_FLAT) : glShadeModel(GL_SMOOTH);
 
 	glLoadIdentity();				        // make sure transformation is "zero'd"
 
-
+	glTranslatef(xVal, yVal, 0.0);
+	glRotatef(xRotVal, 1.0, 0.0, 0.0);
+	glRotatef(yRotVal, 0.0, 1.0, 0.0);
 	// Start drawing
 
 	glColor3f(1.0f, 0.0f, 0.0f);
 	drawSurface();
+
+	
 
 	glFlush();
 	glutSwapBuffers();					// swap buffers (we earlier set double buffer)
@@ -408,24 +418,101 @@ void processArgs(int argc, char *argv[]) {
 	processFile(argv[1]);
 }
 
+void toggleShading() {
+	printf("Switch shading mode\n");
+	flatShading = !flatShading;
+	//prevKeyBuffer[key] = true;
+	//keyBuffer[key] = false;
+}
+
+void toggleFill() {
+	filledPolys = !filledPolys;
+	printf("Switching fill mode.\n");
+}
 void key(unsigned char key, int x, int y) {
-	prevKeyBuffer[key] = false;
-	keyBuffer[key] = true;
+	//prevKeyBuffer[key] = false;
+	//keyBuffer[key] = true;
+	switch (key) {
+	case ' ':
+		exit(0);
+		break;
+	case 'w':
+		toggleFill();
+		break;
+	case 's':
+		toggleShading();
+		break;
+	}
 }
 
 void keyUp(unsigned char key, int x, int y) {
-	prevKeyBuffer[key] = true;
-	keyBuffer[key] = false;
+	//prevKeyBuffer[key] = true;
+	//keyBuffer[key] = false;
 }
 
 void specKey(int key, int x, int y) {
-	prevKeyBuffer[key] = false;
-	keyBuffer[key] = true;
+	int mod = glutGetModifiers();
+	switch (key) {
+	
+	case GLUT_KEY_UP:
+		if (mod == GLUT_ACTIVE_SHIFT) {
+			printf("SHIFT + UP\n");
+			prevKeyBuffer[GLUT_KEY_UP] = true;
+			yVal += 1;
+
+		}
+		else {
+			printf("Rotate up\n");
+			xRotVal += 45.0;
+		}
+		break;
+	case GLUT_KEY_DOWN:
+		if (mod == GLUT_ACTIVE_SHIFT) {
+			printf("SHIFT + DOWN\n");
+			prevKeyBuffer[GLUT_KEY_DOWN] = true;
+			yVal -= 1;
+			//glTranslatef(xVal, yVal, 0.0);
+		}
+		else {
+			//Rotate
+			printf("Rotate down\n");
+			xRotVal -= 45.0;
+		}
+		break;
+	case GLUT_KEY_RIGHT:
+		if (mod == GLUT_ACTIVE_SHIFT) {
+			printf("SHIFT + RIGHT\n");
+			prevKeyBuffer[GLUT_KEY_RIGHT] = true;
+			xVal += 1;
+			//glTranslatef(xVal, yVal, 0.0);
+		}
+		else {
+			//Rotate
+			printf("Rotate right\n");
+			yRotVal += 45.0;
+		}
+		break;
+	case GLUT_KEY_LEFT:
+		if (mod == GLUT_ACTIVE_SHIFT) {
+			printf("SHIFT + LEFT\n");
+			prevKeyBuffer[GLUT_KEY_LEFT] = true;
+			xVal -= 1;
+			//glTranslatef(xVal, yVal, 0.0);
+		}
+		else {
+			//Rotate
+			printf("Rotate left\n");
+			yRotVal -= 45.0;
+		}
+		break;
+	}
+	//prevKeyBuffer[key] = false;
+	//keyBuffer[key] = true;
 }
 
 void specKeyUp(int key, int x, int y) {
-	prevKeyBuffer[key] = true;
-	keyBuffer[key] = false;
+	//prevKeyBuffer[key] = true;
+	//keyBuffer[key] = false;
 }
 
 
