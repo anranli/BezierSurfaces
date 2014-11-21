@@ -182,21 +182,23 @@ Point bezpatchinterp(Surface patch, float u, float v) {
 
     Point* p = new Point();
     *p = pu;
-    p->normal = cross(pu.derivative, pv.derivative);
-    p->normal.normalize();
+    p->normal1 = cross(pu.derivative, pv.derivative);
+    p->normal1.normalize();
+    p->normal2 = cross(pv.derivative, pu.derivative);
+    p->normal2.normalize();
     return *p;
 }
 
 void subdividepatch(Surface patch, float step) {
     float epsilon = 0.0001; //TODO fix maybe
     numdiv = (1 / step);
-	step = 1.0 / numdiv;
+	float newstep = 1.0 / numdiv;
 	
-	for (int iu = 0; iu < numdiv; iu++) {
-        float u = iu*step;
+	for (int iu = 0; iu <= numdiv; iu++) {
+        float u = iu*newstep;
 		patch_points.push_back(vector<Point>());
-        for (int iv = 0; iv < numdiv; iv++) {
-            float v = iv*step;
+        for (int iv = 0; iv <= numdiv; iv++) {
+            float v = iv*newstep;
 
             Point p = bezpatchinterp(patch, u, v);
 			patch_points[iu].push_back(p);
@@ -210,7 +212,20 @@ void subdividepatch(Surface patch, float step) {
 // Simple init function
 //****************************************************
 void initScene(){
+    // Enable lighting
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
 
+    GLfloat light_position[] = { 1.0f, 0.0f, 0.0f, 0.0f }; // From the right
+    GLfloat light_color[] = { 1.0f, 1.0f, 1.0f, 1.0f }; // White light
+    GLfloat ambient_color[] = { 0.2f, 0.2f, 0.2f, 1.0f }; // Weak white light
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_color);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+    //glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+
+    glEnable(GL_DEPTH_TEST);
+    //glDepthFunc(GL_LESS);
 
 }
 
@@ -270,11 +285,27 @@ void handleKeyboardInput() {
 }
 
 void drawRectangle(Point bl, Point tl, Point tr, Point br) {
-    glBegin(GL_POLYGON);                         // draw rectangle 
+    glBegin(GL_QUADS);                         // draw rectangle 
     //glVertex3f(x val, y val, z val (won't change the point because of the projection type));
+    glNormal3f(bl.normal1.x, bl.normal1.y, bl.normal1.z);
     glVertex3f(bl.x, bl.y, bl.z);               // bottom left corner of rectangle
+    glNormal3f(tl.normal1.x, tl.normal1.y, tl.normal1.z);
     glVertex3f(tl.x, tl.y, tl.z);               // top left corner of rectangle
+    glNormal3f(tr.normal1.x, tr.normal1.y, tr.normal1.z);
     glVertex3f(tr.x, tr.y, tr.z);               // top right corner of rectangle
+    glNormal3f(br.normal1.x, br.normal1.y, br.normal1.z);
+    glVertex3f(br.x, br.y, br.z);               // bottom right corner of rectangle
+    glEnd();
+
+    glBegin(GL_QUADS);                         // draw rectangle 
+    //glVertex3f(x val, y val, z val (won't change the point because of the projection type));
+    glNormal3f(bl.normal2.x, bl.normal2.y, bl.normal2.z);
+    glVertex3f(bl.x, bl.y, bl.z);               // bottom left corner of rectangle
+    glNormal3f(tl.normal2.x, tl.normal2.y, tl.normal2.z);
+    glVertex3f(tl.x, tl.y, tl.z);               // top left corner of rectangle
+    glNormal3f(tr.normal2.x, tr.normal2.y, tr.normal2.z);
+    glVertex3f(tr.x, tr.y, tr.z);               // top right corner of rectangle
+    glNormal3f(br.normal2.x, br.normal2.y, br.normal2.z);
     glVertex3f(br.x, br.y, br.z);               // bottom right corner of rectangle
     glEnd();
 
@@ -284,8 +315,8 @@ void drawSurface(){
 	for (Surface s : surface_list) {
 		subdividepatch(s, subdivisionSize);
 
-		for (int iu = 0; iu + 1 < numdiv; iu++) {
-			for (int iv = 0; iv + 1 < numdiv; iv++) {
+		for (int iu = 0; iu + 1 <= numdiv; iu++) {
+			for (int iv = 0; iv + 1 <= numdiv; iv++) {
 				Point ll, lr, ul, ur;
 				ll = patch_points[iu][iv];
 				lr = patch_points[iu][iv + 1];
@@ -300,6 +331,7 @@ void drawSurface(){
 }
 
 void myDisplay() {
+    glClear(GL_DEPTH_BUFFER_BIT);
 
 	glClear(GL_COLOR_BUFFER_BIT);				// clear the color buffer
 
@@ -314,9 +346,16 @@ void myDisplay() {
 
 
 	// Start drawing
+    
+    // ...
+    
 
-	glColor3f(1.0f, 0.0f, 0.0f);
+    GLfloat cyan[] = { 0.f, .8f, .8f, 1.f };
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, cyan);
+    glMaterialfv(GL_FRONT, GL_AMBIENT, cyan);
 	drawSurface();
+
+    
 
 	glFlush();
 	glutSwapBuffers();					// swap buffers (we earlier set double buffer)
@@ -450,7 +489,7 @@ int main(int argc, char *argv[]) {
     glutInit(&argc, argv);
 
     //This tells glut to use a double-buffered window with red, green, and blue channels 
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_ALPHA);
 
     // Initalize theviewport size
     viewport.w = 400;

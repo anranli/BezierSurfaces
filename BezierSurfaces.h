@@ -50,7 +50,7 @@ public:
 class Point {
 public:
     float x, y, z;
-    Vector derivative, normal;
+    Vector derivative, normal1, normal2;
     Point();
     Point(float a, float b, float c);
     Point scalarMult(float s);
