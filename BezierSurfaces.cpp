@@ -219,17 +219,20 @@ void initScene(){
     // Enable lighting
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
+    //glEnable(GL_COLOR_MATERIAL); // Enables color to work together with lighting
+    //glEnable(GL_NORMALIZE);
+    glEnable(GL_DEPTH_TEST);
 
     GLfloat light_position[] = { 1.0f, 0.0f, 0.0f, 0.0f }; // From the right
     GLfloat light_color[] = { 1.0f, 1.0f, 1.0f, 1.0f }; // White light
     GLfloat ambient_color[] = { 0.2f, 0.2f, 0.2f, 1.0f }; // Weak white light
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_color);
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_color);
+    //glLightfv(GL_LIGHT0, GL_SPECULAR, light_color);
     //glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 
-    glEnable(GL_DEPTH_TEST);
-    //glDepthFunc(GL_LESS);
+    
 
 	xVal = 0.0;
 	yVal = 0.0;
@@ -361,8 +364,12 @@ void myDisplay() {
     
 
     GLfloat cyan[] = { 0.f, .8f, .8f, 1.f };
+    GLfloat mat_specularColor[] = { .1f, .1f, .1f, 0.1f };
+    GLfloat mat_shininess[] = { 50.0 };
     glMaterialfv(GL_FRONT, GL_DIFFUSE, cyan);
     glMaterialfv(GL_FRONT, GL_AMBIENT, cyan);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specularColor);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
 	drawSurface();
 
 
