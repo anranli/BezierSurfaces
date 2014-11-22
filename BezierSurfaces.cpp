@@ -229,14 +229,14 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t, float dept
     Point e2i = bezpatchinterp(patch, bcu, bcv);
     Point e3i = bezpatchinterp(patch, cau, cav);
 
-    bool e1 = e1m.distance(e1i) < epsilon;
-    bool e2 = e2m.distance(e2i) < epsilon;
-    bool e3 = e3m.distance(e3i) < epsilon;
+    bool e1 = abs(e1m.distance(e1i)) < epsilon;
+    bool e2 = abs(e2m.distance(e2i)) < epsilon;
+    bool e3 = abs(e3m.distance(e3i)) < epsilon;
 
-    if (e1 && e2 && e3 || depth > 2) {
+    if (!e1 && !e2 && !e3 || depth > 2) {
         triangle_list.push_back(t);
     }
-    else if (!e1 && e2 && e3){
+    else if (e1 && !e2 && !e3){
         Triangle t1(t.a, e1i, t.c);
         t1.au = t.au;
         t1.av = t.av;
@@ -255,7 +255,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t, float dept
         t2.cv = t.cv;
         subdividepatchadaptive(patch, epsilon, t2, depth + 1);
     }
-    else if (e1 && !e2 && e3) {
+    else if (!e1 && e2 && !e3) {
         Triangle t1(t.a, t.b, e2i);
         t1.au = t.au;
         t1.av = t.av;
@@ -274,7 +274,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t, float dept
         t2.cv = t.cv;
         subdividepatchadaptive(patch, epsilon, t2, depth + 1);
     }
-    else if (e1 && e2 && !e3) {
+    else if (!e1 && !e2 && e3) {
         Triangle t1(t.a, t.b, e3i);
         t1.au = t.au;
         t1.av = t.av;
@@ -293,7 +293,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t, float dept
         t2.cv = t.cv;
         subdividepatchadaptive(patch, epsilon, t2, depth + 1);
     }
-    else if (!e1 && !e2 && e3) {
+    else if (e1 && e2 && !e3) {
         Triangle t1(t.a, e1i, e2i);
         t1.au = t.au;
         t1.av = t.av;
@@ -321,7 +321,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t, float dept
         t3.cv = t.cv;
         subdividepatchadaptive(patch, epsilon, t3, depth + 1);
     }
-    else if (e1 && !e2 && !e3) {
+    else if (!e1 && e2 && e3) {
         Triangle t1(t.a, t.b, e3i);
         t1.au = t.au;
         t1.av = t.av;
@@ -349,7 +349,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t, float dept
         t3.cv = t.cv;
         subdividepatchadaptive(patch, epsilon, t3, depth + 1);
     }
-    else if (!e1 && e2 && !e3) {
+    else if (e1 && !e2 && e3) {
         Triangle t1(t.a, e1i, e3i);
         t1.au = t.au;
         t1.av = t.av;
@@ -464,6 +464,7 @@ void initScene(){
     // Enable lighting
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHT1);
     //glEnable(GL_COLOR_MATERIAL); // Enables color to work together with lighting
     //glEnable(GL_NORMALIZE);
     glEnable(GL_DEPTH_TEST);
@@ -475,6 +476,12 @@ void initScene(){
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_color);
+	GLfloat light_position2[] = { 0.0f, 0.5f, -0.5f, 0.0f };
+	GLfloat light_color2[] = { 0.0f, 1.0f, 1.0f, 0.0f }; // White light
+	GLfloat ambient_color2[] = { 0.2f, 0.2f, 0.2f, 1.0f }; // Weak white light
+	glLightfv(GL_LIGHT1, GL_POSITION, light_position2);
+	glLightfv(GL_LIGHT1, GL_AMBIENT, ambient_color2);
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, light_color2);
     //glLightfv(GL_LIGHT0, GL_SPECULAR, light_color);
     //glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_FALSE);
 
