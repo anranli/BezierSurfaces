@@ -80,6 +80,6 @@ public:
     Point a, b, c;
     float au, av, bu, bv, cu, cv;
     Triangle();
-    Triangle(Point a, Point b, Point c);
+    Triangle(Point a1, Point b1, Point c1);
     
 };

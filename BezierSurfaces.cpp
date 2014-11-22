@@ -120,7 +120,7 @@ Point Point::add(Point p) {
 }
 
 float Point::distance(Point p) {
-    sqrt(pow((x - p.x), 2) + pow((y - p.y), 2) + pow((z - p.z), 2));
+    return sqrt(pow((x - p.x), 2) + pow((y - p.y), 2) + pow((z - p.z), 2));
 }
 
 Point Point::midpoint(Point p) {
@@ -147,6 +147,16 @@ Surface::Surface(Curve a1, Curve b1, Curve c1, Curve d1) {
     b = b1;
     c = c1;
     d = d1;
+}
+
+Triangle::Triangle() {
+
+}
+
+Triangle::Triangle(Point a1, Point b1, Point c1){
+    a = a1;
+    b = b1;
+    c = c1;
 }
 
 //****************************************************
@@ -219,9 +229,9 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
     Point e2i = bezpatchinterp(patch, bcu, bcv);
     Point e3i = bezpatchinterp(patch, cau, cav);
 
-    bool e1 = distance(e1m, e1i) < epsilon;
-    bool e2 = distance(e2m, e2i) < epsilon;
-    bool e3 = distance(e3m, e3i) < epsilon;
+    bool e1 = e1m.distance(e1i) < epsilon;
+    bool e2 = e2m.distance(e2i) < epsilon;
+    bool e3 = e3m.distance(e3i) < epsilon;
 
     if (e1 && e2 && e3) {
         triangle_list.push_back(t);
@@ -664,7 +674,7 @@ void processFile(char* filename) {
             numberOfPatches = atoi(token[0]);
         }
         else {
-            vector<Point> curve_in_list;
+            //vector<Point> curve_in_list;
             Point a;
             a.x = strtof(token[0], &temp);
             a.y = strtof(token[1], &temp);
