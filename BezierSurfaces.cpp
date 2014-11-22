@@ -213,7 +213,7 @@ Point bezpatchinterp(Surface patch, float u, float v) {
     return *p;
 }
 
-void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
+void subdividepatchadaptive(Surface patch, float epsilon, Triangle t, float depth) {
     Point e1m = t.a.midpoint(t.b);
     Point e2m = t.b.midpoint(t.c);
     Point e3m = t.c.midpoint(t.a);
@@ -233,7 +233,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
     bool e2 = e2m.distance(e2i) < epsilon;
     bool e3 = e3m.distance(e3i) < epsilon;
 
-    if (e1 && e2 && e3) {
+    if (e1 && e2 && e3 || depth > 2) {
         triangle_list.push_back(t);
     }
     else if (!e1 && e2 && e3){
@@ -244,7 +244,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t1.bv = abv;
         t1.cu = t.cu;
         t1.cv = t.cv;
-        subdividepatchadaptive(patch, epsilon, t1);
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
 
         Triangle t2(e1i, t.b, t.c);
         t2.au = abu;
@@ -253,7 +253,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t2.bv = t.bv;
         t2.cu = t.cu;
         t2.cv = t.cv;
-        subdividepatchadaptive(patch, epsilon, t2);
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
     }
     else if (e1 && !e2 && e3) {
         Triangle t1(t.a, t.b, e2i);
@@ -263,7 +263,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t1.bv = t.bv;
         t1.cu = bcu;
         t1.cv = bcv;
-        subdividepatchadaptive(patch, epsilon, t1);
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
 
         Triangle t2(t.a, e2i, t.c);
         t2.au = t.au;
@@ -272,7 +272,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t2.bv = bcv;
         t2.cu = t.cu;
         t2.cv = t.cv;
-        subdividepatchadaptive(patch, epsilon, t2);
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
     }
     else if (e1 && e2 && !e3) {
         Triangle t1(t.a, t.b, e3i);
@@ -282,7 +282,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t1.bv = t.bv;
         t1.cu = cau;
         t1.cv = cav;
-        subdividepatchadaptive(patch, epsilon, t1);
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
 
         Triangle t2(e3i, t.b, t.c);
         t2.au = cau;
@@ -291,7 +291,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t2.bv = t.bv;
         t2.cu = t.cu;
         t2.cv = t.cv;
-        subdividepatchadaptive(patch, epsilon, t2);
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
     }
     else if (!e1 && !e2 && e3) {
         Triangle t1(t.a, e1i, e2i);
@@ -301,7 +301,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t1.bv = abv;
         t1.cu = bcu;
         t1.cv = bcv;
-        subdividepatchadaptive(patch, epsilon, t1);
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
 
         Triangle t2(e1i, t.b, e2i);
         t2.au = abu;
@@ -310,7 +310,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t2.bv = t.bv;
         t2.cu = bcu;
         t2.cv = bcv;
-        subdividepatchadaptive(patch, epsilon, t2);
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
 
         Triangle t3(t.a, e2i, t.c);
         t3.au = t.au;
@@ -319,7 +319,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t3.bv = bcv;
         t3.cu = t.cu;
         t3.cv = t.cv;
-        subdividepatchadaptive(patch, epsilon, t3);
+        subdividepatchadaptive(patch, epsilon, t3, depth + 1);
     }
     else if (e1 && !e2 && !e3) {
         Triangle t1(t.a, t.b, e3i);
@@ -329,7 +329,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t1.bv = t.bv;
         t1.cu = cau;
         t1.cv = cav;
-        subdividepatchadaptive(patch, epsilon, t1);
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
 
         Triangle t2(e3i, t.b, e2i);
         t2.au = cau;
@@ -338,7 +338,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t2.bv = t.bv;
         t2.cu = bcu;
         t2.cv = bcv;
-        subdividepatchadaptive(patch, epsilon, t2);
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
 
         Triangle t3(e3i, e2i, t.c);
         t3.au = cau;
@@ -347,7 +347,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t3.bv = bcv;
         t3.cu = t.cu;
         t3.cv = t.cv;
-        subdividepatchadaptive(patch, epsilon, t3);
+        subdividepatchadaptive(patch, epsilon, t3, depth + 1);
     }
     else if (!e1 && e2 && !e3) {
         Triangle t1(t.a, e1i, e3i);
@@ -357,7 +357,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t1.bv = abv;
         t1.cu = cau;
         t1.cv = cav;
-        subdividepatchadaptive(patch, epsilon, t1);
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
 
         Triangle t2(e1i, e3i, t.c);
         t2.au = abu;
@@ -366,7 +366,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t2.bv = cav;
         t2.cu = t.cu;
         t2.cv = t.cv;
-        subdividepatchadaptive(patch, epsilon, t2);
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
 
         Triangle t3(e1i, t.b, t.c);
         t3.au = abu;
@@ -375,7 +375,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t3.bv = t.bv;
         t3.cu = t.cu;
         t3.cv = t.cv;
-        subdividepatchadaptive(patch, epsilon, t3);
+        subdividepatchadaptive(patch, epsilon, t3, depth + 1);
     }
     else {
         Triangle t1(t.a, e1i, e3i);
@@ -385,7 +385,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t1.bv = abv;
         t1.cu = cau;
         t1.cv = cav;
-        subdividepatchadaptive(patch, epsilon, t1);
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
 
         Triangle t2(e1i, t.b, e2i);
         t2.au = abu;
@@ -394,7 +394,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t2.bv = t.bv;
         t2.cu = bcu;
         t2.cv = bcv;
-        subdividepatchadaptive(patch, epsilon, t2);
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
 
         Triangle t3(e3i, e2i, t.c);
         t3.au = cau;
@@ -403,7 +403,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t3.bv = bcv;
         t3.cu = t.cu;
         t3.cv = t.cv;
-        subdividepatchadaptive(patch, epsilon, t3);
+        subdividepatchadaptive(patch, epsilon, t3, depth + 1);
 
         Triangle t4(e1i, e2i, e3i);
         t4.au = abu;
@@ -412,7 +412,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
         t4.bv = bcv;
         t4.cu = cau;
         t4.cv = cav;
-        subdividepatchadaptive(patch, epsilon, t4);
+        subdividepatchadaptive(patch, epsilon, t4, depth + 1);
     }
 }
 
@@ -426,16 +426,16 @@ void subdividepatch(Surface patch, float step) {
         t1.bv = 1;
         t1.cu = 1;
         t1.cv = 1;
-        subdividepatchadaptive(patch, step, t1);
+        subdividepatchadaptive(patch, step, t1, 1);
 
         Triangle t2(patch.a.a, patch.a.d, patch.d.d);
-        t1.au = 0;
-        t1.av = 0;
-        t1.bu = 1;
-        t1.bv = 0;
-        t1.cu = 1;
-        t1.cv = 1;
-        subdividepatchadaptive(patch, step, t1);
+        t2.au = 0;
+        t2.av = 0;
+        t2.bu = 1;
+        t2.bv = 0;
+        t2.cu = 1;
+        t2.cv = 1;
+        subdividepatchadaptive(patch, step, t2, 1);
     }
     else {
         //float epsilon = 0.0001; //TODO fix maybe
@@ -584,12 +584,8 @@ void drawSurface(){
 
     for (Surface s : surface_list) {
         subdividepatch(s, subdivisionSize);
-        if (isAdaptive) {
-            for (Triangle t : triangle_list) {
-                drawTriangle(t.a, t.b, t.c);
-            }
-        }
-        else {
+        
+        if (!isAdaptive) {
             for (int iu = 0; iu + 1 <= numdiv; iu++) {
                 for (int iv = 0; iv + 1 <= numdiv; iv++) {
                     Point ll, lr, ul, ur;
@@ -602,6 +598,13 @@ void drawSurface(){
 
             }
             patch_points.clear();
+        }
+    }
+
+    if (isAdaptive) {
+        for (Triangle t : triangle_list) {
+            drawTriangle(t.a, t.b, t.c);
+
         }
     }
 
