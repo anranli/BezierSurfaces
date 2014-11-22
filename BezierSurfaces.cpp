@@ -417,23 +417,6 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
 }
 
 void subdividepatch(Surface patch, float step) {
-    //float epsilon = 0.0001; //TODO fix maybe
-    numdiv = (1 / step);
-    float newstep = 1.0 / numdiv;
-
-    for (int iu = 0; iu <= numdiv; iu++) {
-        float u = iu*newstep;
-        patch_points.push_back(vector<Point>());
-        for (int iv = 0; iv <= numdiv; iv++) {
-            float v = iv*newstep;
-
-            Point p = bezpatchinterp(patch, u, v);
-            patch_points[iu].push_back(p);
-            //patch_points[iu][iv] = p;
-        }
-
-    }
-
     //adaptive
     if (isAdaptive) {
         Triangle t1(patch.a.a, patch.d.a, patch.d.d);
@@ -454,6 +437,24 @@ void subdividepatch(Surface patch, float step) {
         t1.cv = 1;
         subdividepatchadaptive(patch, step, t1);
     }
+    else {
+        //float epsilon = 0.0001; //TODO fix maybe
+        numdiv = (1 / step);
+        float newstep = 1.0 / numdiv;
+
+        for (int iu = 0; iu <= numdiv; iu++) {
+            float u = iu*newstep;
+            patch_points.push_back(vector<Point>());
+            for (int iv = 0; iv <= numdiv; iv++) {
+                float v = iv*newstep;
+
+                Point p = bezpatchinterp(patch, u, v);
+                patch_points[iu].push_back(p);
+                //patch_points[iu][iv] = p;
+            }
+
+        }
+    }
 }
 
 //****************************************************
@@ -473,7 +474,7 @@ void initScene(){
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_color);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, light_color);
+    //glLightfv(GL_LIGHT0, GL_SPECULAR, light_color);
     //glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 
 
@@ -567,23 +568,43 @@ void drawRectangle(Point bl, Point tl, Point tr, Point br) {
 
 }
 
+void drawTriangle(Point bl, Point tl, Point tr) {
+    glBegin(GL_TRIANGLES);                         
+    //glVertex3f(x val, y val, z val (won't change the point because of the projection type));
+    glNormal3f(bl.normal1.x, bl.normal1.y, bl.normal1.z);
+    glVertex3f(bl.x, bl.y, bl.z);               
+    glNormal3f(tl.normal1.x, tl.normal1.y, tl.normal1.z);
+    glVertex3f(tl.x, tl.y, tl.z);               
+    glNormal3f(tr.normal1.x, tr.normal1.y, tr.normal1.z);
+    glVertex3f(tr.x, tr.y, tr.z);               
+    glEnd();
+}
+
 void drawSurface(){
+
     for (Surface s : surface_list) {
         subdividepatch(s, subdivisionSize);
-
-        for (int iu = 0; iu + 1 <= numdiv; iu++) {
-            for (int iv = 0; iv + 1 <= numdiv; iv++) {
-                Point ll, lr, ul, ur;
-                ll = patch_points[iu][iv];
-                lr = patch_points[iu][iv + 1];
-                ur = patch_points[iu + 1][iv + 1];
-                ul = patch_points[iu + 1][iv];
-                drawRectangle(ll, ul, ur, lr);
+        if (isAdaptive) {
+            for (Triangle t : triangle_list) {
+                drawTriangle(t.a, t.b, t.c);
             }
-
         }
-        patch_points.clear();
+        else {
+            for (int iu = 0; iu + 1 <= numdiv; iu++) {
+                for (int iv = 0; iv + 1 <= numdiv; iv++) {
+                    Point ll, lr, ul, ur;
+                    ll = patch_points[iu][iv];
+                    lr = patch_points[iu][iv + 1];
+                    ur = patch_points[iu + 1][iv + 1];
+                    ul = patch_points[iu + 1][iv];
+                    drawRectangle(ll, ul, ur, lr);
+                }
+
+            }
+            patch_points.clear();
+        }
     }
+
 }
 
 void myDisplay() {
@@ -615,8 +636,8 @@ void myDisplay() {
     GLfloat mat_shininess[] = { 120.0 };
     glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, cyan);
     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cyan);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specularColor);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_shininess);
+    //glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specularColor);
+    //glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_shininess);
     drawSurface();
 
 
@@ -719,6 +740,12 @@ void processArgs(int argc, char *argv[]) {
     char* temp = argv[1];
     subdivisionSize = strtof(argv[2], &temp);
     processFile(argv[1]);
+    if (argv[3]) {
+        string ad(argv[3]);
+        if ( ad == "-a"){
+            isAdaptive = true;
+        }
+    }
 }
 
 void toggleShading() {
