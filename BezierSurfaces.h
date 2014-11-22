@@ -55,6 +55,8 @@ public:
     Point(float a, float b, float c);
     Point scalarMult(float s);
     Point add(Point p);
+    Point midpoint(Point p);
+    float distance(Point p);
     //Point sub(Vector);
 };
 
@@ -71,4 +73,13 @@ public:
     //vector<vector<Point>> points;
     Surface();
     Surface(Curve a1, Curve b1, Curve c1, Curve d1);
+};
+
+class Triangle {
+public:
+    Point a, b, c;
+    float au, av, bu, bv, cu, cv;
+    Triangle();
+    Triangle(Point a, Point b, Point c);
+    
 };
