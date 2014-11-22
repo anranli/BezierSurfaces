@@ -467,15 +467,16 @@ void initScene(){
     //glEnable(GL_COLOR_MATERIAL); // Enables color to work together with lighting
     //glEnable(GL_NORMALIZE);
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
 
-    GLfloat light_position[] = { 1.0f, -1.0f, -1.0f, 0.0f }; // From the right
+    GLfloat light_position[] = { 1.0f, -1.0f, -.5f, 0.0f }; 
     GLfloat light_color[] = { 1.0f, 1.0f, 1.0f, 1.0f }; // White light
     GLfloat ambient_color[] = { 0.2f, 0.2f, 0.2f, 1.0f }; // Weak white light
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_color);
     //glLightfv(GL_LIGHT0, GL_SPECULAR, light_color);
-    //glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+    //glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_FALSE);
 
 
 
@@ -812,7 +813,7 @@ void specKey(int key, int x, int y) {
         }
         else {
             printf("Rotate up\n");
-            xRotVal += 45.0;
+            xRotVal += 22.5;
         }
         break;
     case GLUT_KEY_DOWN:
@@ -825,7 +826,7 @@ void specKey(int key, int x, int y) {
         else {
             //Rotate
             printf("Rotate down\n");
-            xRotVal -= 45.0;
+            xRotVal -= 22.5;
         }
         break;
     case GLUT_KEY_RIGHT:
