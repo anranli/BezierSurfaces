@@ -577,7 +577,17 @@ void drawTriangle(Point bl, Point tl, Point tr) {
     glVertex3f(tl.x, tl.y, tl.z);               
     glNormal3f(tr.normal1.x, tr.normal1.y, tr.normal1.z);
     glVertex3f(tr.x, tr.y, tr.z);               
-    glEnd();
+    glEnd(); 
+
+    /*glBegin(GL_TRIANGLES);
+    //glVertex3f(x val, y val, z val (won't change the point because of the projection type));
+    glNormal3f(bl.normal2.x, bl.normal2.y, bl.normal2.z);
+    glVertex3f(bl.x, bl.y, bl.z);
+    glNormal3f(tl.normal2.x, tl.normal2.y, tl.normal2.z);
+    glVertex3f(tl.x, tl.y, tl.z);
+    glNormal3f(tr.normal2.x, tr.normal2.y, tr.normal2.z);
+    glVertex3f(tr.x, tr.y, tr.z);
+    glEnd();*/
 }
 
 void drawSurface(){
