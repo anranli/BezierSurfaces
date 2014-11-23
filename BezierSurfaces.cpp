@@ -44,9 +44,8 @@ const int MAX_TOKENS_PER_LINE = 20;
 const char* const DELIMITER = " ";
 
 Viewport	viewport;
-float rA, gA, bA;
-float rD, gD, bD;
-float rS, gS, bS, v;
+Vector light_pos;
+Vector light_pos2;
 
 string filename;
 float subdivisionSize;
@@ -163,7 +162,9 @@ Triangle::Triangle(Point a1, Point b1, Point c1){
 // logic below
 //***************************************************
 
-
+float dot(Vector a, Vector b) {
+    return a.x*b.x + a.y * b.y + a.z * b.z;
+}
 
 Vector cross(Vector a, Vector b) {
     return Vector(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
@@ -179,6 +180,7 @@ Point bezcurveinterp(Curve curve, float u) {
 
     Point p = d1.scalarMult(1.0 - u).add(e1.scalarMult(u));
     Vector der(d1, e1); //TODO is this normalized??
+    //Vector der(e1.x - d1.x, e1.y - d1.y, e1.z - d1.z);
     p.derivative = der.scalarMult(3);
 
     return p;
@@ -210,6 +212,13 @@ Point bezpatchinterp(Surface patch, float u, float v) {
     p->normal1.normalize();
     p->normal2 = cross(pv.derivative, pu.derivative);
     p->normal2.normalize();
+    /*if (dot(p->normal1, light_pos) < 0 && dot(p->normal1, light_pos2) < 0) {
+        p->normal1 = p->normal2;
+        printf("hi");
+    }*/
+    /*if (p->normal1.x == 0 && p->normal1.y == 0 && p->normal1.z == 0){
+        printf("hi");
+    }*/
     return *p;
 }
 
@@ -237,8 +246,45 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t, float dept
     bool e2 = e2d < epsilon;
     bool e3 = e3d < epsilon;
 
-    if (e1 && e2 && e3) {
+    if (depth > 5) {
         triangle_list.push_back(t);
+    }
+    else if (!e1 && !e2 && !e3) {
+        Triangle t1(t.a, e1i, e3i);
+        t1.au = t.au;
+        t1.av = t.av;
+        t1.bu = abu;
+        t1.bv = abv;
+        t1.cu = cau;
+        t1.cv = cav;
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
+
+        Triangle t2(e1i, t.b, e2i);
+        t2.au = abu;
+        t2.av = abv;
+        t2.bu = t.bu;
+        t2.bv = t.bv;
+        t2.cu = bcu;
+        t2.cv = bcv;
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
+
+        Triangle t3(e3i, e2i, t.c);
+        t3.au = cau;
+        t3.av = cav;
+        t3.bu = bcu;
+        t3.bv = bcv;
+        t3.cu = t.cu;
+        t3.cv = t.cv;
+        subdividepatchadaptive(patch, epsilon, t3, depth + 1);
+
+        Triangle t4(e1i, e2i, e3i);
+        t4.au = abu;
+        t4.av = abv;
+        t4.bu = bcu;
+        t4.bv = bcv;
+        t4.cu = cau;
+        t4.cv = cav;
+        subdividepatchadaptive(patch, epsilon, t4, depth + 1);
     }
     else if (!e1 && e2 && e3){
         Triangle t1(t.a, e1i, t.c);
@@ -363,13 +409,13 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t, float dept
         t1.cv = cav;
         subdividepatchadaptive(patch, epsilon, t1, depth + 1);
 
-        Triangle t2(e1i, e3i, t.c);
+        Triangle t2(e1i, t.c, e3i);
         t2.au = abu;
         t2.av = abv;
-        t2.bu = cau;
-        t2.bv = cav;
-        t2.cu = t.cu;
-        t2.cv = t.cv;
+        t2.bu = t.cu;
+        t2.bv = t.cv;
+        t2.cu = cau;
+        t2.cv = cav;
         subdividepatchadaptive(patch, epsilon, t2, depth + 1);
 
         Triangle t3(e1i, t.b, t.c);
@@ -382,41 +428,7 @@ void subdividepatchadaptive(Surface patch, float epsilon, Triangle t, float dept
         subdividepatchadaptive(patch, epsilon, t3, depth + 1);
     }
     else {
-        Triangle t1(t.a, e1i, e3i);
-        t1.au = t.au;
-        t1.av = t.av;
-        t1.bu = abu;
-        t1.bv = abv;
-        t1.cu = cau;
-        t1.cv = cav;
-        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
-
-        Triangle t2(e1i, t.b, e2i);
-        t2.au = abu;
-        t2.av = abv;
-        t2.bu = t.bu;
-        t2.bv = t.bv;
-        t2.cu = bcu;
-        t2.cv = bcv;
-        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
-
-        Triangle t3(e3i, e2i, t.c);
-        t3.au = cau;
-        t3.av = cav;
-        t3.bu = bcu;
-        t3.bv = bcv;
-        t3.cu = t.cu;
-        t3.cv = t.cv;
-        subdividepatchadaptive(patch, epsilon, t3, depth + 1);
-
-        Triangle t4(e1i, e2i, e3i);
-        t4.au = abu;
-        t4.av = abv;
-        t4.bu = bcu;
-        t4.bv = bcv;
-        t4.cu = cau;
-        t4.cv = cav;
-        subdividepatchadaptive(patch, epsilon, t4, depth + 1);
+        triangle_list.push_back(t);
     }
 }
 
@@ -432,13 +444,13 @@ void subdividepatch(Surface patch, float step) {
         t1.cv = 1;
         subdividepatchadaptive(patch, step, t1, 1);
 
-        Triangle t2(patch.a.a, patch.a.d, patch.d.d);
+        Triangle t2(patch.a.a, patch.d.d, patch.a.d);
         t2.au = 0;
         t2.av = 0;
         t2.bu = 1;
-        t2.bv = 0;
+        t2.bv = 1;
         t2.cu = 1;
-        t2.cv = 1;
+        t2.cv = 0;
         subdividepatchadaptive(patch, step, t2, 1);
     }
     else {
@@ -473,10 +485,19 @@ void initScene(){
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
+
+    light_pos.x = 1;
+    light_pos.y = 1;
+    light_pos.z = -0.5;
+    light_pos2.x = 1;
+    light_pos2.y = 1;
+    light_pos2.z = -0.5;
     GLfloat light_position[] = { 1.0f, -1.0f, -.5f, 0.0f };
+    GLfloat light_position2[] = { -1.0f, 1.0f, .5f, 0.0f };
     GLfloat light_color[] = { 1.0f, 1.0f, 1.0f, 1.0f }; // White light
     GLfloat ambient_color[] = { 0.2f, 0.2f, 0.2f, 1.0f }; // Weak white light
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    //glLightfv(GL_LIGHT0, GL_POSITION, light_position2);
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_color);
     //glLightfv(GL_LIGHT0, GL_SPECULAR, light_color);
@@ -584,15 +605,15 @@ void drawTriangle(Point bl, Point tl, Point tr) {
     glVertex3f(tr.x, tr.y, tr.z);
     glEnd();
 
-    glBegin(GL_TRIANGLES);
+    /*glBegin(GL_TRIANGLES);
     //glVertex3f(x val, y val, z val (won't change the point because of the projection type));
-    glNormal3f(bl.normal2.x, bl.normal2.y, bl.normal2.z);
-    glVertex3f(bl.x, bl.y, bl.z);
-    glNormal3f(tl.normal2.x, tl.normal2.y, tl.normal2.z);
-    glVertex3f(tl.x, tl.y, tl.z);
     glNormal3f(tr.normal2.x, tr.normal2.y, tr.normal2.z);
     glVertex3f(tr.x, tr.y, tr.z);
-    glEnd();
+    glNormal3f(tl.normal2.x, tl.normal2.y, tl.normal2.z);
+    glVertex3f(tl.x, tl.y, tl.z);
+    glNormal3f(bl.normal2.x, bl.normal2.y, bl.normal2.z);
+    glVertex3f(bl.x, bl.y, bl.z);
+    glEnd();*/
 }
 
 void drawSurface(){
@@ -614,14 +635,21 @@ void drawSurface(){
             }
             patch_points.clear();
         }
+        else {
+            for (Triangle t : triangle_list) {
+                drawTriangle(t.a, t.b, t.c);
+
+            }
+            triangle_list.clear();
+        }
     }
 
-    if (isAdaptive) {
+    /*if (isAdaptive) {
         for (Triangle t : triangle_list) {
             drawTriangle(t.a, t.b, t.c);
 
         }
-    }
+    }*/
 
 }
 

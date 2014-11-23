@@ -1,5 +1,7 @@
 Anran Li (cs184-ep) and Chris Brown (cs184-bd)
 Platform: Windows (8.1)
 Location: as3\BezierSurfaces.cpp
+Images: as2\Images
+Video: http://youtu.be/KN_c_fvq-tY
 Submission: Anran Li for Windows. Submitted via putty ssh on Linux.
 Instructions: Open as3\BezierSurfaces.sln in Visual Studio (2013). Go to Project -> Properties -> Debugging -> type arguments into Command Arguments section. Build. Hit F5 or Run/Debug.
