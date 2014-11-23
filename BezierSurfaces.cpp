@@ -124,7 +124,7 @@ float Point::distance(Point p) {
 }
 
 Point Point::midpoint(Point p) {
-    return Point((x + p.x) / 2, (y - p.x) / 2, (z - p.z) / 2);
+    return Point((x + p.x) / 2, (y + p.y) / 2, (z + p.z) / 2);
 }
 
 Curve::Curve() {
@@ -213,200 +213,215 @@ Point bezpatchinterp(Surface patch, float u, float v) {
     return *p;
 }
 
-void subdividepatchadaptive(Surface patch, float epsilon, Triangle t) {
+void subdividepatchadaptive(Surface patch, float epsilon, Triangle t, float depth) {
     Point e1m = t.a.midpoint(t.b);
-    Point e3m = t.b.midpoint(t.c);
-    Point e2m = t.c.midpoint(t.a);
+    Point e2m = t.b.midpoint(t.c);
+    Point e3m = t.c.midpoint(t.a);
 
-    float e1u = (t.au + t.bu) / 2;
-    float e1v = (t.av + t.bv) / 2;
-    float e3u = (t.bu + t.cu) / 2;
-    float e3v = (t.bv + t.cv) / 2;
-    float e2u = (t.cu + t.au) / 2;
-    float e2v = (t.cv + t.av) / 2;
+    float abu = (t.au + t.bu) / 2;
+    float abv = (t.av + t.bv) / 2;
+    float bcu = (t.bu + t.cu) / 2;
+    float bcv = (t.bv + t.cv) / 2;
+    float cau = (t.cu + t.au) / 2;
+    float cav = (t.cv + t.av) / 2;
 
-    Point e1i = bezpatchinterp(patch, e1u, e1v);
-    Point e2i = bezpatchinterp(patch, e3u, e3v);
-    Point e3i = bezpatchinterp(patch, e2u, e2v);
+    Point e1i = bezpatchinterp(patch, abu, abv);
+    Point e2i = bezpatchinterp(patch, bcu, bcv);
+    Point e3i = bezpatchinterp(patch, cau, cav);
 
-    bool e1 = abs(e1m.distance(e1i)) < epsilon;
-    bool e2 = abs(e2m.distance(e2i)) < epsilon;
-    bool e3 = abs(e3m.distance(e3i)) < epsilon;
+    float e1d = e1m.distance(e1i);
+    float e2d = e2m.distance(e2i);
+    float e3d = e3m.distance(e3i);
 
-	if (e1 && e2 && e3) {
-		Triangle t1(t.a, e1m, e2m);
-		t1.au = t.au;
-		t1.av = t.av;
-		t1.bu = e1u;
-		t1.bv = e1v;
-		t1.cu = e2u;
-		t1.cv = e2v;
-		subdividepatchadaptive(patch, epsilon, t1);
-		Triangle t2(e1m, t.b, e3m);
-		t2.au = e1u;
-		t2.av = e1v;
-		t2.bu = t.bu;
-		t2.bv = t.bv;
-		t2.cu = e3u;
-		t2.cv = e3v;
-		subdividepatchadaptive(patch, epsilon, t2);
-		Triangle t3(e2m, e3m, t.c);
-		t3.au = e2u;
-		t3.av = e2v;
-		t3.bu = e3u;
-		t3.bv = e3v;
-		t3.cu = t.cu;
-		t3.cv = t.cv;
-		subdividepatchadaptive(patch, epsilon, t3);
-		Triangle t4(e1m, e3m, e2m);
-		t4.au = e1u;
-		t4.av = e1v;
-		t4.bu = e3u;
-		t4.bv = e3v;
-		t4.cu = e2u;
-		t4.cv = e2v;
-		subdividepatchadaptive(patch, epsilon, t4);
-	}
-	else if (e1 && !e2 && !e3) {
-		Triangle t1(t.a, e1m, t.c);
-		t1.au = t.au;
-		t1.av = t.av;
-		t1.bu = e1u;
-		t1.bv = e1v;
-		t1.cu = t.cu;
-		t1.cv = t.cv;
-		subdividepatchadaptive(patch, epsilon, t1);
-		Triangle t2(e1m, t.b, t.c);
-		t2.au = e1u;
-		t2.av = e1v;
-		t2.bu = t.bu;
-		t2.bv = t.bv;
-		t2.cu = t.cu;
-		t2.cv = t.cv;
-		subdividepatchadaptive(patch, epsilon, t2);
-	}
-	else if (!e1 && e2 && !e3) {
-		Triangle t1(t.a, t.b, e2m);
-		t1.au = t.au;
-		t1.av = t.av;
-		t1.bu = t.bu;
-		t1.bv = t.bv;
-		t1.cu = e2u;
-		t1.cv = e2v;
-		subdividepatchadaptive(patch, epsilon, t1);
-		Triangle t2(t.b, t.c, e2m);
-		t2.au = t.bu;
-		t2.av = t.bv;
-		t2.bu = t.cu;
-		t2.bv = t.cv;
-		t2.cu = e2u;
-		t2.cv = e2v;
-		subdividepatchadaptive(patch, epsilon, t2);
-	}
-	else if (!e1 && !e2 && e3) {
-		Triangle t1(t.a, t.b, e3m);
-		t1.au = t.au;
-		t1.av = t.av;
-		t1.bu = t.bu;
-		t1.bv = t.bv;
-		t1.cu = e3u;
-		t1.cv = e3v;
-		subdividepatchadaptive(patch, epsilon, t1);
-		Triangle t2(e3m, t.c, t.a);
-		t2.au = e3u;
-		t2.av = e3v;
-		t2.bu = t.cu;
-		t2.bv = t.cv;
-		t2.cu = t.au;
-		t2.cv = t.av;
-		subdividepatchadaptive(patch, epsilon, t2);
-	}
-	else if (e1 && e2 && !e3) {
-		Triangle t1(t.a, e1m, e2m);
-		t1.au = t.au;
-		t1.av = t.av;
-		t1.bu = e1u;
-		t1.bv = e1v;
-		t1.cu = e2u;
-		t1.cv = e2v;
-		subdividepatchadaptive(patch, epsilon, t1);
-		Triangle t2(e1m, t.b, e2m);
-		t2.au = e1u;
-		t2.av = e1v;
-		t2.bu = t.bu;
-		t2.bv = t.bv;
-		t2.cu = e2u;
-		t2.cv = e2v;
-		subdividepatchadaptive(patch, epsilon, t2);
-		Triangle t3(t.b, t.c, e2m);
-		t3.au = t.bu;
-		t3.av = t.bv;
-		t3.bu = t.cu;
-		t3.bv = t.cv;
-		t3.cu = e2u;
-		t3.cv = e2v;
-		subdividepatchadaptive(patch, epsilon, t3);
-	}
-	else if (!e1 && e2 && e3) {
-		Triangle t1(t.a, t.b, e3m);
-		t1.au = t.au;
-		t1.av = t.av;
-		t1.bu = t.bu;
-		t1.bv = t.bv;
-		t1.cu = e3u;
-		t1.cv = e3v;
-		subdividepatchadaptive(patch, epsilon, t1);
-		Triangle t2(t.a, e3m, e2m);
-		t2.au = t.au;
-		t2.av = t.av;
-		t2.bu = e3u;
-		t2.bv = e3v;
-		t2.cu = e2u;
-		t2.cv = e2v;
-		subdividepatchadaptive(patch, epsilon, t2);
-		Triangle t3(e2m, e3m, t.c);
-		t3.au = e2u;
-		t3.av = e2v;
-		t3.bu = e3u;
-		t3.bv = e3v;
-		t3.cu = t.cu;
-		t3.cv = t.cv;
-		subdividepatchadaptive(patch, epsilon, t3);
-	}
-	else if (e1 && !e2 && e3) {
-		Triangle t1(t.a, e1m, t.c);
-		t1.au = t.au;
-		t1.av = t.av;
-		t1.bu = e1u;
-		t1.bv = e1v;
-		t1.cu = t.cu;
-		t1.cv = t.cv;
-		subdividepatchadaptive(patch, epsilon, t1);
-		Triangle t2(e1m, t.b, e3m);
-		t2.au = e1u;
-		t2.av = e1v;
-		t2.bu = t.bu;
-		t2.bv = t.bv;
-		t2.cu = e3u;
-		t2.cv = e3v;
-		subdividepatchadaptive(patch, epsilon, t2);
-		Triangle t3(e1m, e3m, t.c);
-		t3.au = e1u;
-		t3.av = e1v;
-		t3.bu = e3u;
-		t3.bv = e3v;
-		t3.cu = t.cu;
-		t3.cv = t.cv;
-		subdividepatchadaptive(patch, epsilon, t3);
-	}
-	else {
-		triangle_list.push_back(t);
-	}
+    bool e1 = e1d < epsilon;
+    bool e2 = e2d < epsilon;
+    bool e3 = e3d < epsilon;
+
+    if (e1 && e2 && e3) {
+        triangle_list.push_back(t);
+    }
+    else if (!e1 && e2 && e3){
+        Triangle t1(t.a, e1i, t.c);
+        t1.au = t.au;
+        t1.av = t.av;
+        t1.bu = abu;
+        t1.bv = abv;
+        t1.cu = t.cu;
+        t1.cv = t.cv;
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
+
+        Triangle t2(e1i, t.b, t.c);
+        t2.au = abu;
+        t2.av = abv;
+        t2.bu = t.bu;
+        t2.bv = t.bv;
+        t2.cu = t.cu;
+        t2.cv = t.cv;
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
+    }
+    else if (e1 && !e2 && e3) {
+        Triangle t1(t.a, t.b, e2i);
+        t1.au = t.au;
+        t1.av = t.av;
+        t1.bu = t.bu;
+        t1.bv = t.bv;
+        t1.cu = bcu;
+        t1.cv = bcv;
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
+
+        Triangle t2(t.a, e2i, t.c);
+        t2.au = t.au;
+        t2.av = t.av;
+        t2.bu = bcu;
+        t2.bv = bcv;
+        t2.cu = t.cu;
+        t2.cv = t.cv;
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
+    }
+    else if (e1 && e2 && !e3) {
+        Triangle t1(t.a, t.b, e3i);
+        t1.au = t.au;
+        t1.av = t.av;
+        t1.bu = t.bu;
+        t1.bv = t.bv;
+        t1.cu = cau;
+        t1.cv = cav;
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
+
+        Triangle t2(e3i, t.b, t.c);
+        t2.au = cau;
+        t2.av = cav;
+        t2.bu = t.bu;
+        t2.bv = t.bv;
+        t2.cu = t.cu;
+        t2.cv = t.cv;
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
+    }
+    else if (!e1 && !e2 && e3) {
+        Triangle t1(t.a, e1i, e2i);
+        t1.au = t.au;
+        t1.av = t.av;
+        t1.bu = abu;
+        t1.bv = abv;
+        t1.cu = bcu;
+        t1.cv = bcv;
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
+
+        Triangle t2(e1i, t.b, e2i);
+        t2.au = abu;
+        t2.av = abv;
+        t2.bu = t.bu;
+        t2.bv = t.bv;
+        t2.cu = bcu;
+        t2.cv = bcv;
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
+
+        Triangle t3(t.a, e2i, t.c);
+        t3.au = t.au;
+        t3.av = t.av;
+        t3.bu = bcu;
+        t3.bv = bcv;
+        t3.cu = t.cu;
+        t3.cv = t.cv;
+        subdividepatchadaptive(patch, epsilon, t3, depth + 1);
+    }
+    else if (e1 && !e2 && !e3) {
+        Triangle t1(t.a, t.b, e3i);
+        t1.au = t.au;
+        t1.av = t.av;
+        t1.bu = t.bu;
+        t1.bv = t.bv;
+        t1.cu = cau;
+        t1.cv = cav;
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
+
+        Triangle t2(e3i, t.b, e2i);
+        t2.au = cau;
+        t2.av = cav;
+        t2.bu = t.bu;
+        t2.bv = t.bv;
+        t2.cu = bcu;
+        t2.cv = bcv;
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
+
+        Triangle t3(e3i, e2i, t.c);
+        t3.au = cau;
+        t3.av = cav;
+        t3.bu = bcu;
+        t3.bv = bcv;
+        t3.cu = t.cu;
+        t3.cv = t.cv;
+        subdividepatchadaptive(patch, epsilon, t3, depth + 1);
+    }
+    else if (!e1 && e2 && !e3) {
+        Triangle t1(t.a, e1i, e3i);
+        t1.au = t.au;
+        t1.av = t.av;
+        t1.bu = abu;
+        t1.bv = abv;
+        t1.cu = cau;
+        t1.cv = cav;
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
+
+        Triangle t2(e1i, e3i, t.c);
+        t2.au = abu;
+        t2.av = abv;
+        t2.bu = cau;
+        t2.bv = cav;
+        t2.cu = t.cu;
+        t2.cv = t.cv;
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
+
+        Triangle t3(e1i, t.b, t.c);
+        t3.au = abu;
+        t3.av = abv;
+        t3.bu = t.bu;
+        t3.bv = t.bv;
+        t3.cu = t.cu;
+        t3.cv = t.cv;
+        subdividepatchadaptive(patch, epsilon, t3, depth + 1);
+    }
+    else {
+        Triangle t1(t.a, e1i, e3i);
+        t1.au = t.au;
+        t1.av = t.av;
+        t1.bu = abu;
+        t1.bv = abv;
+        t1.cu = cau;
+        t1.cv = cav;
+        subdividepatchadaptive(patch, epsilon, t1, depth + 1);
+
+        Triangle t2(e1i, t.b, e2i);
+        t2.au = abu;
+        t2.av = abv;
+        t2.bu = t.bu;
+        t2.bv = t.bv;
+        t2.cu = bcu;
+        t2.cv = bcv;
+        subdividepatchadaptive(patch, epsilon, t2, depth + 1);
+
+        Triangle t3(e3i, e2i, t.c);
+        t3.au = cau;
+        t3.av = cav;
+        t3.bu = bcu;
+        t3.bv = bcv;
+        t3.cu = t.cu;
+        t3.cv = t.cv;
+        subdividepatchadaptive(patch, epsilon, t3, depth + 1);
+
+        Triangle t4(e1i, e2i, e3i);
+        t4.au = abu;
+        t4.av = abv;
+        t4.bu = bcu;
+        t4.bv = bcv;
+        t4.cu = cau;
+        t4.cv = cav;
+        subdividepatchadaptive(patch, epsilon, t4, depth + 1);
+    }
 }
 
 void subdividepatch(Surface patch, float step) {
     //adaptive
-	int epsilon = 0.1;
     if (isAdaptive) {
         Triangle t1(patch.a.a, patch.d.a, patch.d.d);
         t1.au = 0;
@@ -415,7 +430,7 @@ void subdividepatch(Surface patch, float step) {
         t1.bv = 1;
         t1.cu = 1;
         t1.cv = 1;
-        subdividepatchadaptive(patch, epsilon, t1);
+        subdividepatchadaptive(patch, step, t1, 1);
 
         Triangle t2(patch.a.a, patch.a.d, patch.d.d);
         t2.au = 0;
@@ -424,7 +439,7 @@ void subdividepatch(Surface patch, float step) {
         t2.bv = 0;
         t2.cu = 1;
         t2.cv = 1;
-        subdividepatchadaptive(patch, epsilon, t2);
+        subdividepatchadaptive(patch, step, t2, 1);
     }
     else {
         //float epsilon = 0.0001; //TODO fix maybe
@@ -453,26 +468,19 @@ void initScene(){
     // Enable lighting
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-	glEnable(GL_LIGHT1);
     //glEnable(GL_COLOR_MATERIAL); // Enables color to work together with lighting
     //glEnable(GL_NORMALIZE);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    GLfloat light_position[] = { 1.0f, -1.0f, -.5f, 0.0f }; 
+    GLfloat light_position[] = { 1.0f, -1.0f, -.5f, 0.0f };
     GLfloat light_color[] = { 1.0f, 1.0f, 1.0f, 1.0f }; // White light
     GLfloat ambient_color[] = { 0.2f, 0.2f, 0.2f, 1.0f }; // Weak white light
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_color);
-	GLfloat light_position2[] = { 0.0f, 0.5f, -0.5f, 0.0f };
-	GLfloat light_color2[] = { 0.0f, 1.0f, 1.0f, 0.0f }; // White light
-	GLfloat ambient_color2[] = { 0.2f, 0.2f, 0.2f, 1.0f }; // Weak white light
-	glLightfv(GL_LIGHT1, GL_POSITION, light_position2);
-	glLightfv(GL_LIGHT1, GL_AMBIENT, ambient_color2);
-	glLightfv(GL_LIGHT1, GL_DIFFUSE, light_color2);
     //glLightfv(GL_LIGHT0, GL_SPECULAR, light_color);
-    //glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_FALSE);
+    glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_FALSE);
 
 
 
@@ -566,17 +574,17 @@ void drawRectangle(Point bl, Point tl, Point tr, Point br) {
 }
 
 void drawTriangle(Point bl, Point tl, Point tr) {
-    glBegin(GL_TRIANGLES);                         
+    glBegin(GL_TRIANGLES);
     //glVertex3f(x val, y val, z val (won't change the point because of the projection type));
     glNormal3f(bl.normal1.x, bl.normal1.y, bl.normal1.z);
-    glVertex3f(bl.x, bl.y, bl.z);               
+    glVertex3f(bl.x, bl.y, bl.z);
     glNormal3f(tl.normal1.x, tl.normal1.y, tl.normal1.z);
-    glVertex3f(tl.x, tl.y, tl.z);               
+    glVertex3f(tl.x, tl.y, tl.z);
     glNormal3f(tr.normal1.x, tr.normal1.y, tr.normal1.z);
-    glVertex3f(tr.x, tr.y, tr.z);               
-    glEnd(); 
+    glVertex3f(tr.x, tr.y, tr.z);
+    glEnd();
 
-    /*glBegin(GL_TRIANGLES);
+    glBegin(GL_TRIANGLES);
     //glVertex3f(x val, y val, z val (won't change the point because of the projection type));
     glNormal3f(bl.normal2.x, bl.normal2.y, bl.normal2.z);
     glVertex3f(bl.x, bl.y, bl.z);
@@ -584,14 +592,14 @@ void drawTriangle(Point bl, Point tl, Point tr) {
     glVertex3f(tl.x, tl.y, tl.z);
     glNormal3f(tr.normal2.x, tr.normal2.y, tr.normal2.z);
     glVertex3f(tr.x, tr.y, tr.z);
-    glEnd();*/
+    glEnd();
 }
 
 void drawSurface(){
 
     for (Surface s : surface_list) {
         subdividepatch(s, subdivisionSize);
-        
+
         if (!isAdaptive) {
             for (int iu = 0; iu + 1 <= numdiv; iu++) {
                 for (int iv = 0; iv + 1 <= numdiv; iv++) {
@@ -752,7 +760,7 @@ void processArgs(int argc, char *argv[]) {
     processFile(argv[1]);
     if (argv[3]) {
         string ad(argv[3]);
-        if ( ad == "-a"){
+        if (ad == "-a"){
             isAdaptive = true;
         }
     }
@@ -910,7 +918,6 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
 
 
 
